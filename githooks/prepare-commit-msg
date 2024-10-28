@@ -25,9 +25,12 @@ BRANCH_EXCLUDED=$(printf "%s\n" "${BRANCHES_TO_SKIP[@]}" | grep -c "^$BRANCH_NAM
 
 # check whether the branch should not be excluded and JIRA ID was extracted
 if [ -n "$JIRA_ID" ] && ! [[ $BRANCH_EXCLUDED -eq 1 ]]; then
-  # add a newline and the JIRA ID at the end of the commit message
-  echo "" >> "$1"         # 빈 줄 추가
-  echo "$JIRA_ID" >> "$1" # JIRA ID 추가
+  # 커밋 메시지에 JIRA_ID가 이미 포함되어 있는지 확인
+  if ! grep -q "$JIRA_ID" "$1"; then
+    # add a newline and the JIRA ID at the end of the commit message
+    echo "" >> "$1"         # 빈 줄 추가
+    echo "$JIRA_ID" >> "$1" # JIRA ID 추가
+  fi
 fi
 
 echo "end prepare-commit-msg"
