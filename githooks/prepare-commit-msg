@@ -1,0 +1,33 @@
+#!/bin/bash
+
+# source: https://medium.com/prnd/github-커밋-메세지에-jira-이슈번호-자동으로-넣어주기-779048784037
+
+# created: 24-06-12
+# updated: 24-10-28 (for this pjt)
+# @glenn-syj
+
+echo "start prepare-commit-msg"
+
+# assign the branches to be skipped
+if [ -z "$BRANCHES_TO_SKIP" ]; then
+  BRANCHES_TO_SKIP=(main develop release hotfix)
+fi
+
+# parse the name of the current branch
+BRANCH_NAME=$(git symbolic-ref --short HEAD)
+# assign the name after the last '/'
+BRANCH_NAME="${BRANCH_NAME##*/}"
+# assign the part which matches the regex in the branch name as a jira id after printing
+JIRA_ID=$(echo "$BRANCH_NAME" | egrep -o 'S11P31A407-[0-9]+')
+
+# assign 1 if the current branch is in the BRANCHES_TO_SKIP
+BRANCH_EXCLUDED=$(printf "%s\n" "${BRANCHES_TO_SKIP[@]}" | grep -c "^$BRANCH_NAME$")
+
+# check whether the branch should not be excluded and JIRA ID was extracted
+if [ -n "$JIRA_ID" ] && ! [[ $BRANCH_EXCLUDED -eq 1 ]]; then
+  # add a newline and the JIRA ID at the end of the commit message
+  echo "" >> "$1"         # 빈 줄 추가
+  echo "$JIRA_ID" >> "$1" # JIRA ID 추가
+fi
+
+echo "end prepare-commit-msg"
