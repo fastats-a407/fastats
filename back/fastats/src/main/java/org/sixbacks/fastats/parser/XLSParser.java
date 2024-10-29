@@ -184,7 +184,6 @@ public class XLSParser {
 							String tableId = row.getCell(Column.STATS_ID.value).getStringCellValue();
 							if (tableId == null || tableId.isEmpty()) {
 								log.warn("통계표 아이디가 존재하지 않습니다.");
-								System.out.println("통계표 아이디가 존재하지 않습니다.");
 							} else {
 								tableId.trim();
 							}
