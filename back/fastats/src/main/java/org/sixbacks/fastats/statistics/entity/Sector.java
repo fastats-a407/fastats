@@ -15,7 +15,7 @@ import lombok.Getter;
 public class Sector {
 
 	@Id
-	private final Integer id;
+	private final Long id;
 
 	@Column("code")
 	private final String code;
@@ -28,13 +28,13 @@ public class Sector {
 	}
 
 	@PersistenceCreator
-	Sector(Integer id, String code, String description) {
+	Sector(Long id, String code, String description) {
 		this.id = id;
 		this.code = code;
 		this.description = description;
 	}
 
-	public Integer getId() {
+	public Long getId() {
 		return id;
 	}
 

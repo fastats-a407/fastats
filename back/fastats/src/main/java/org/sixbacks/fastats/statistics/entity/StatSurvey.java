@@ -16,10 +16,10 @@ import lombok.Getter;
 public class StatSurvey {
 
 	@Id
-	private final Integer id;
+	private final Long id;
 
 	@Column("sector_id")
-	private final AggregateReference<Sector, Integer> sectorId;
+	private final AggregateReference<Sector, Long> sectorId;
 
 	@Column("org_code")
 	private final Integer orgCode;
@@ -39,14 +39,14 @@ public class StatSurvey {
 	@Column("coll_period")
 	private final String collPeriod;
 
-	public static StatSurvey from(AggregateReference<Sector, Integer> sectorId, Integer orgCode, String orgName,
+	public static StatSurvey from(AggregateReference<Sector, Long> sectorId, Integer orgCode, String orgName,
 		String name, String collStartDate, String collEndDate, String collPeriod) {
 		return new StatSurvey(null, sectorId, orgCode, orgName,
 			name, collStartDate, collEndDate, collPeriod);
 	}
 
 	@PersistenceCreator
-	StatSurvey(Integer id, AggregateReference<Sector, Integer> sectorId, Integer orgCode, String orgName,
+	StatSurvey(Long id, AggregateReference<Sector, Long> sectorId, Integer orgCode, String orgName,
 		String name, String collStartDate, String collEndDate, String collPeriod) {
 		this.id = id;
 		this.sectorId = sectorId;
