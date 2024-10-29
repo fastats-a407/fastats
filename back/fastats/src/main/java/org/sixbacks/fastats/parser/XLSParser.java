@@ -10,6 +10,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.sixbacks.fastats.statistics.entity.Sector;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +34,6 @@ public class XLSParser {
 			HSSFWorkbook workbook = new HSSFWorkbook(is);
 
 			Iterator<Sheet> iterator = workbook.sheetIterator();
-			int subjectIdx = 1;
 
 			while (iterator.hasNext()) {
 				Sheet curSheet = iterator.next();
@@ -46,7 +46,10 @@ public class XLSParser {
 						Cell rowCell = row.getCell(Column.LEVEL.getValue());
 						if (rowCell != null && SUBJECT.equals(rowCell.getStringCellValue())) {
 							// TODO : 주제 코드 및 주세 설명 DB 삽입. 후 pk 값 가져오기
-							subjectIdx++;
+							String code = row.getCell(Column.SECTOR_CODE.value).getStringCellValue();
+							code = code.split(" ")[2];
+							String desc = row.getCell(Column.STATS_NAME.value).getStringCellValue().trim();
+							Sector newSector = Sector.from(code, desc);
 						}
 
 						//현재 row 가 통계표 명을 포함한 열이 아닐 경우 pass
@@ -217,7 +220,7 @@ public class XLSParser {
 
 	@Getter
 	public enum Column {
-		LEVEL(0), STATS_NAME(1), STATS_LINK(2), STATS_ORIGIN(3), STATS_TERM(4), STATS_ID(7);
+		LEVEL(0), STATS_NAME(1), STATS_LINK(2), STATS_ORIGIN(3), STATS_TERM(4), SECTOR_CODE(6), STATS_ID(7);
 		private final int value;
 
 		Column(int value) {
