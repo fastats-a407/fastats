@@ -16,7 +16,7 @@ public class StatTable {
 	private final Long id;
 
 	@Column("survey_id")
-	private final AggregateReference<StatSurvey, Integer> surveyId;
+	private final AggregateReference<StatSurvey, Long> surveyId;
 
 	@Column("name")
 	private final String name;
@@ -33,14 +33,14 @@ public class StatTable {
 	@Column("kosis_view_link")
 	private final String kosisViewLink;
 
-	public static StatTable from(AggregateReference<StatSurvey, Integer> surveyId, String name, String content,
+	public static StatTable from(AggregateReference<StatSurvey, Long> surveyId, String name, String content,
 		String comment, String kosisTbId, String kosisViewLink) {
 
 		return new StatTable(null, surveyId, name, content, comment, kosisTbId, kosisViewLink);
 	}
 
 	@PersistenceCreator
-	public StatTable(Long id, AggregateReference<StatSurvey, Integer> surveyId, String name, String content,
+	public StatTable(Long id, AggregateReference<StatSurvey, Long> surveyId, String name, String content,
 		String comment, String kosisTbId, String kosisViewLink) {
 		this.id = id;
 		this.surveyId = surveyId;
