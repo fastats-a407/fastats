@@ -11,8 +11,12 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+//TODO : 나중에 statistic 도메인 안의 배치/스케쥴러 모듈 안으로 들어가야 함.
+@Slf4j
 public class XLSParser {
+	// TODO : 각 파싱 기능 별로 분리하기
 	static final String SUBJECT = "1";
 
 	public static void main(String[] args) throws IOException {
@@ -20,7 +24,7 @@ public class XLSParser {
 
 		try (InputStream is = XLSParser.class.getClassLoader().getResourceAsStream("통계표목록/주제별통계.xls")) {
 			if (is == null) {
-				System.out.println("리소스를 찾을 수 없습니다.");
+				log.error("리소스를 찾을 수 없습니다.");
 				return;
 			}
 
@@ -68,7 +72,7 @@ public class XLSParser {
 						//수록 시작 시기, 주기 ,종료시기 parsing
 						String term = row.getCell(Column.STATS_TERM.getValue()).getStringCellValue();
 						if (Strings.isEmpty(term)) {
-							// TODO: 파일의 경우에도 알맞은 수록 시기 파싱
+							// TODO: 파일의 경우에도 알맞은 수록 시기 파싱. 현재는 NULL 로 냅둠
 							// String tableName = row.getCell(Column.STATS_NAME.getValue())
 							// 	.getStringCellValue()
 							// 	.trim();
@@ -98,24 +102,69 @@ public class XLSParser {
 
 						} else {
 							String[] terms = term.split(" ");
+							assert terms.length == 4 : "형식이 다른 시기 존재";
+
+							StringBuilder termBuilder = new StringBuilder();
+							/// 수록 주기 parsing
 							if (terms[0].endsWith("년")) {
-
+								if (terms[0].length() == 1) {
+									termBuilder.append(1);
+								} else {
+									termBuilder.append(terms[0], 0, terms[0].length() - 1); //"년" 빼고 파싱;
+								}
+								termBuilder.append(Term.YEAR);
 							} else if (terms[0].endsWith("분기")) {
-
+								termBuilder.append(Term.SEMIANNUAL);
 							} else if (terms[0].endsWith("월")) {
-
+								if (terms[0].length() != 1) {
+									// 매월 주기가 아닌 예외 존재. (현재는 없음)
+									log.warn("월 주기가 아닌 예외 케이스 : {}", terms[0]);
+								}
+								termBuilder.append(Term.MONTH);
 							} else if (terms[0].endsWith("반기")) {
-
+								if (terms[0].length() != 2) {
+									log.warn("반기 주기의 예외 존재 : {}", terms[0]);
+								}
+								termBuilder.append(Term.SEMIANNUAL);
 							} else if (terms[0].endsWith("일")) {
-
+								if (terms[0].length() != 1) {
+									log.warn("일 주기의 예외 존재 : {}", terms[0]);
+								}
+								termBuilder.append(Term.DAY);
 							} else {
 								if (terms[0].endsWith("부정기") || terms[0].endsWith("IR")) {
-
+									termBuilder.append(Term.IR);
 								} else {
-									System.out.println(terms[0]);
+									log.warn("비정기 주기에 예외 존재 : {}", terms[0]);
 								}
 							}
+							String interval = termBuilder.toString();
+							termBuilder.setLength(0);
+
+							//시작 시기 parsing
+							if (!terms[1].startsWith("(")) {
+								log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
+							} else {
+								String startDate = terms[1].substring(1);
+								if (!isInteger(startDate)) {
+									log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
+								} else {
+									//  Entity.startDate = startDate
+								}
+							}
+
+							// 종료 시기 parsing
+							if (!terms[3].endsWith(")")) {
+								log.warn("종료 시기가 형식에 맞지 않는 경우 존재 : {}", terms[3]);
+							} else {
+								String endDate = terms[3].substring(0, terms[3].length() - 1);
+								if (!isInteger(endDate)) {
+									log.warn("종료 시기가 형식에 맞지 않는 경우 존재.");
+								}
+							}
+
 						}
+
 					}
 
 				}
@@ -125,8 +174,21 @@ public class XLSParser {
 			// 워크북 닫기
 			workbook.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error("리소스 열기 실패", e.getCause());
 		}
+	}
+
+	static private boolean isInteger(String str) {
+		if (str == null || str.isEmpty()) {
+			return false;
+		}
+
+		for (char c : str.toCharArray()) {
+			if (!Character.isDigit(c)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	@Getter
@@ -135,6 +197,17 @@ public class XLSParser {
 		private final int value;
 
 		Column(int value) {
+			this.value = value;
+		}
+
+	}
+
+	@Getter
+	public enum Term {
+		YEAR("Y"), MONTH("1M"), DAY("1D"), SEMIANNUAL("1H"), QUATER("1Q"), IR("IR");
+		private final String value;
+
+		Term(String value) {
 			this.value = value;
 		}
 
