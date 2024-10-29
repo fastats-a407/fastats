@@ -33,8 +33,10 @@ public class StatTable {
 	@Column("kosis_view_link")
 	private final String kosisViewLink;
 
-	public static StatTable from(AggregateReference<StatSurvey, Long> surveyId, String name, String content,
+	public static StatTable from(Long rawSurveyId, String name, String content,
 		String comment, String kosisTbId, String kosisViewLink) {
+
+		AggregateReference<StatSurvey, Long> surveyId = AggregateReference.to(rawSurveyId);
 
 		return new StatTable(null, surveyId, name, content, comment, kosisTbId, kosisViewLink);
 	}

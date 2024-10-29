@@ -39,8 +39,11 @@ public class StatSurvey {
 	@Column("coll_period")
 	private final String collPeriod;
 
-	public static StatSurvey from(AggregateReference<Sector, Long> sectorId, Integer orgCode, String orgName,
+	public static StatSurvey from(Long rawSectorId, Integer orgCode, String orgName,
 		String name, String collStartDate, String collEndDate, String collPeriod) {
+
+		AggregateReference<Sector, Long> sectorId = AggregateReference.to(rawSectorId);
+		
 		return new StatSurvey(null, sectorId, orgCode, orgName,
 			name, collStartDate, collEndDate, collPeriod);
 	}
