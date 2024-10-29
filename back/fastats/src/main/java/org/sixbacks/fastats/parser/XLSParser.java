@@ -7,6 +7,7 @@ import java.util.Iterator;
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 
@@ -163,6 +164,29 @@ public class XLSParser {
 								}
 							}
 
+							/// 통계표명 파싱
+							String statisticsTableName = row.getCell(Column.STATS_NAME.value)
+								.getStringCellValue()
+								.trim();
+							if (Strings.isEmpty(statisticsTableName)) {
+								log.warn("통계표 명이 비었습니다. : Sheet {}  Row {}", curSheet.getSheetName(), row.getRowNum());
+							}
+
+							/// 통계표 링크 파싱
+							Hyperlink link = row.getCell(Column.STATS_LINK.value).getHyperlink();
+							if (link == null) {
+								log.warn("통계표 링크가 존재하지 않습니다.");
+							} else {
+								String statisticsLink = link.getAddress();
+							}
+
+							// 통계표 아이디 파싱
+							String tableId = row.getCell(Column.STATS_ID.value).getStringCellValue();
+							if (tableId == null || tableId.isEmpty()) {
+								log.warn("통계표 아이디가 존재하지 않습니다.");
+							} else {
+								tableId.trim();
+							}
 						}
 
 					}
