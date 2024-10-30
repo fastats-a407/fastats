@@ -42,189 +42,63 @@ public class XLSParser {
 				Sheet curSheet = iterator.next();
 				for (int rowIndex = 4; rowIndex <= curSheet.getLastRowNum(); rowIndex++) {
 					Row row = curSheet.getRow(rowIndex);
-
-					if (row != null) {
-						// 현재 row 의 level 컬럼이 1
-						// 새로운 주제분류 시작. idx 1 증가
-						Cell rowCell = row.getCell(Column.LEVEL.getValue());
-						if (rowCell != null && SUBJECT.equals(rowCell.getStringCellValue())) {
-							// TODO : 주제 코드 및 주세 설명 DB 삽입. 후 pk 값 가져오기
-							String code = row.getCell(Column.SECTOR_CODE.value).getStringCellValue();
-							code = code.split(" ")[2];
-							String desc = row.getCell(Column.STATS_NAME.value).getStringCellValue().trim();
-							Sector newSector = Sector.from(code, desc);
-							sectorIdx++;
-						}
-
-						//현재 row 가 통계표 명을 포함한 열이 아닐 경우 pass
-						if ((row.getCell(Column.STATS_LINK.getValue()) == null) || (Strings.isEmpty(
-							row.getCell(Column.STATS_LINK.getValue()).getStringCellValue()))) {
-							continue;
-						}
-						String orgName = null;
-						String name = null;
-
-						// 기관 , 통계명 parsing
-						String origin = row.getCell(Column.STATS_ORIGIN.getValue()).getStringCellValue();
-						if (Strings.isEmpty(origin)) {
-							// TODO: 통계 출처 칸이 비어 있는 경우, 현재 2개의 예외만 존재. 모두 "통계청, 국가자산통계" 에 속하므로, 일단 하드 코딩 해둠. 나중에 바꿔야함.
-							// System.out.println("통계 출처 비었음.");
-							// System.out.println("Sheet : " + curSheet.getSheetName());
-							// System.out.println("Row : " + rowIndex);
-							orgName = "통계청";
-							name = "국가자산통계";
-						} else {
-
-							orgName = origin.split(",")[0];
-							name = origin.split(",")[1];
-							name = name.trim().substring(1, name.length() - 1);
-
-						}
-						//수록 시작 시기, 주기 ,종료시기 parsing
-						String period = null;
-						String startDate = null;
-						String endDate = null;
-
-						String term = row.getCell(Column.STATS_TERM.getValue()).getStringCellValue();
-						if (Strings.isEmpty(term)) {
-							// TODO: 파일의 경우에도 알맞은 수록 시기 파싱. 현재는 NULL 로 냅둠
-							// String tableName = row.getCell(Column.STATS_NAME.getValue())
-							// 	.getStringCellValue()
-							// 	.trim();
-							// // (파일) 로 시작하는 것을 확인했다.
-							// // 시작 년도 == 끝나는 년도 (파일) {년도} 파일명
-							// if (!tableName.startsWith("(파일)")) {
-							// 	System.out.println("There is Empty Term!");
-							// 	System.out.println("Sheet : " + curSheet.getSheetName());
-							// 	System.out.println("Row : " + rowIndex);
-							// 	System.out.println("Table Name : " + tableName);
-							// 	System.out.println("This table doesn't starts with (파일)");
-							// } else {
-							// 	// (파일) 로 시작하는 통계명.
-							// 	// 날짜를 파싱하고 싶은데, 예외가 있네?
-							// 	// 기본적으로 (파일) {년도}
-							//
-							// 	// 아닌 경우 (파일)수출입물류통계 <- 얘는 특이하다. 기간을 내가 어떻게 알지?
-							// 	if (tableName.split(" ").length < 2) {
-							// 		System.out.println(tableName);
-							// 	} else if (!tableName.split(" ")[1].trim().substring(0, 4).matches("-?\\d+")) {
-							// 		System.out.println("new Exception with no YEAR");
-							// 		System.out.println("Sheet : " + curSheet.getSheetName());
-							// 		System.out.println("Row : " + rowIndex);
-							// 		System.out.println("Table Name : " + tableName);
-							// 	}
-							// }
-
-						} else {
-							String[] terms = term.split(" ");
-							assert terms.length == 4 : "형식이 다른 시기 존재";
-
-							StringBuilder termBuilder = new StringBuilder();
-							/// 수록 주기 parsing
-							if (terms[0].endsWith("년")) {
-								if (terms[0].length() == 1) {
-									termBuilder.append(1);
-								} else {
-									termBuilder.append(terms[0], 0, terms[0].length() - 1); //"년" 빼고 파싱;
-								}
-								termBuilder.append(Term.YEAR);
-							} else if (terms[0].endsWith("분기")) {
-								termBuilder.append(Term.SEMIANNUAL);
-							} else if (terms[0].endsWith("월")) {
-								if (terms[0].length() != 1) {
-									// 매월 주기가 아닌 예외 존재. (현재는 없음)
-									log.warn("월 주기가 아닌 예외 케이스 : {}", terms[0]);
-								}
-								termBuilder.append(Term.MONTH);
-							} else if (terms[0].endsWith("반기")) {
-								if (terms[0].length() != 2) {
-									log.warn("반기 주기의 예외 존재 : {}", terms[0]);
-								}
-								termBuilder.append(Term.SEMIANNUAL);
-							} else if (terms[0].endsWith("일")) {
-								if (terms[0].length() != 1) {
-									log.warn("일 주기의 예외 존재 : {}", terms[0]);
-								}
-								termBuilder.append(Term.DAY);
-							} else {
-								if (terms[0].endsWith("부정기") || terms[0].endsWith("IR")) {
-									termBuilder.append(Term.IR);
-								} else {
-									log.warn("비정기 주기에 예외 존재 : {}", terms[0]);
-								}
-							}
-							period = termBuilder.toString();
-							termBuilder.setLength(0);
-
-							//시작 시기 parsing
-							if (!terms[1].startsWith("(")) {
-								log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
-							} else {
-								startDate = terms[1].substring(1);
-								if (!isInteger(startDate)) {
-									log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
-								} else {
-									//  Entity.startDate = startDate
-								}
-							}
-
-							// 종료 시기 parsing
-							if (!terms[3].endsWith(")")) {
-								log.warn("종료 시기가 형식에 맞지 않는 경우 존재 : {}", terms[3]);
-							} else {
-								endDate = terms[3].substring(0, terms[3].length() - 1);
-								if (!isInteger(endDate)) {
-									log.warn("종료 시기가 형식에 맞지 않는 경우 존재.");
-								}
-							}
-
-							/// 통계표명 파싱
-							String tableName = row.getCell(Column.STATS_NAME.value)
-								.getStringCellValue()
-								.trim();
-							if (Strings.isEmpty(tableName)) {
-								log.warn("통계표 명이 비었습니다. : Sheet {}  Row {}", curSheet.getSheetName(), row.getRowNum());
-							}
-
-							/// 통계표 링크 파싱
-							String tableLink = null;
-							Hyperlink link = row.getCell(Column.STATS_LINK.value).getHyperlink();
-							if (link == null) {
-								log.warn("통계표 링크가 존재하지 않습니다.");
-							} else {
-								tableLink = link.getAddress();
-							}
-
-							// 통계표 아이디 파싱
-							String tableId = row.getCell(Column.STATS_ID.value).getStringCellValue();
-							if (tableId == null || tableId.isEmpty()) {
-								log.warn("통계표 아이디가 존재하지 않습니다.");
-							} else {
-								tableId.trim();
-							}
-
-							StatSurvey statSurvey = StatSurvey.from(
-								sectorIdx,
-								101,
-								orgName,
-								name,
-								startDate,
-								endDate,
-								period
-							);
-
-							StatTable statTable = StatTable.from(
-								statSurvey.getId(),
-								tableName,
-								null,
-								null,
-								tableId,
-								tableLink
-							);
-
-						}
-
+					if (row == null) {
+						continue;
 					}
+
+					// 현재 row 의 level 컬럼이 1
+					// 새로운 주제분류 시작. idx 1 증가
+					Cell rowCell = row.getCell(Column.LEVEL.value);
+					if (rowCell == null || !SUBJECT.equals(rowCell.getStringCellValue())) {
+						sectorIdx++;
+						parseSector(row);
+					}
+
+					//현재 row 가 통계표 명을 포함한 열이 아닐 경우 pass
+					if ((row.getCell(Column.STATS_LINK.getValue()) == null) || (Strings.isEmpty(
+						row.getCell(Column.STATS_LINK.getValue()).getStringCellValue()))) {
+						continue;
+					}
+
+					// 기관 , 통계명 parsing
+					String[] names = parseOrgName(row);
+					String orgName = names[0];
+					String name = names[1];
+
+					//수록 시작 시기, 주기 ,종료시기 parsing
+					String[] term = parseStatDate(row);
+					String period = term[0];
+					String startDate = term[1];
+					String endDate = term[2];
+
+					/// 통계표명 파싱
+					String tableName = parseTableName(row);
+
+					/// 통계표 링크 파싱
+					String tableLink = parseTableLink(row);
+
+					// 통계표 아이디 파싱
+					String tableId = parseTableId(row);
+
+					StatSurvey statSurvey = StatSurvey.from(
+						sectorIdx,
+						101, // TODO : 기관 코드 어디서 가져와야함
+						orgName,
+						name,
+						startDate,
+						endDate,
+						period
+					);
+
+					StatTable statTable = StatTable.from(
+						// statSurvey.getId(),
+						0l,
+						tableName,
+						null,
+						null,
+						tableId,
+						tableLink
+					);
 
 				}
 
@@ -235,6 +109,133 @@ public class XLSParser {
 		} catch (IOException e) {
 			log.error("리소스 열기 실패", e.getCause());
 		}
+	}
+
+	private static String parseTableId(Row row) {
+		String tableId = row.getCell(Column.STATS_ID.value).getStringCellValue();
+		if (tableId == null || tableId.isEmpty()) {
+			log.warn("통계표 아이디가 존재하지 않습니다.");
+			return null;
+		} else {
+			return tableId.trim();
+		}
+	}
+
+	private static String parseTableLink(Row row) {
+		Hyperlink link = row.getCell(Column.STATS_LINK.value).getHyperlink();
+		if (link == null) {
+			log.warn("통계표 링크가 존재하지 않습니다.");
+			return null;
+		} else {
+			return link.getAddress();
+		}
+	}
+
+	private static String parseTableName(Row row) {
+		String tableName = row.getCell(Column.STATS_NAME.value)
+			.getStringCellValue()
+			.trim();
+		if (Strings.isEmpty(tableName)) {
+			log.warn("통계표 명이 비었습니다. : Row {}", row.getRowNum());
+			return null;
+		}
+		return tableName;
+	}
+
+	private static String[] parseStatDate(Row row) {
+		String[] terms = new String[3];
+		String term = row.getCell(Column.STATS_TERM.getValue()).getStringCellValue();
+		if (Strings.isEmpty(term)) {
+			return terms;
+		}
+		String[] splitTerm = term.split(" ");
+		assert splitTerm.length == 4 : "형식이 다른 시기 존재";
+
+		terms[0] = parseStatPeriod(splitTerm[0]);
+		terms[1] = parseStatStartDate(splitTerm[1]);
+		terms[2] = parseStatEndDate(splitTerm[3]);
+		return terms;
+	}
+
+	private static String parseStatEndDate(String term) {
+		String endDate = term.substring(1, term.length() - 1);
+		if (!term.endsWith(")") || !isInteger(endDate)) {
+			log.warn("종료 시기가 형식에 맞지 않는 경우 존재 : {}", term);
+			return null;
+		}
+		return endDate;
+	}
+
+	private static String parseStatStartDate(String term) {
+		String startDate = term.substring(1);
+		if (!term.startsWith("(") || !isInteger(startDate)) {
+			log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", term);
+			return null;
+		}
+		return startDate;
+	}
+
+	private static String parseStatPeriod(String term) {
+		StringBuilder termBuilder = new StringBuilder();
+		/// 수록 주기 parsing
+		if (term.endsWith("년")) {
+			if (term.length() == 1) {
+				termBuilder.append(1);
+			} else {
+				termBuilder.append(term, 0, term.length() - 1); //"년" 빼고 파싱;
+			}
+			termBuilder.append(Term.YEAR);
+		} else if (term.endsWith("분기") && term.length() == 2) {
+			termBuilder.append(Term.SEMIANNUAL);
+		} else if (term.endsWith("월") && term.length() == 1) {
+			termBuilder.append(Term.MONTH);
+		} else if (term.endsWith("반기") && term.length() == 2) {
+			termBuilder.append(Term.SEMIANNUAL);
+		} else if (term.endsWith("일") && term.length() == 1) {
+			termBuilder.append(Term.DAY);
+		} else if (term.endsWith("부정기") || term.endsWith("IR")) {
+			termBuilder.append(Term.IR);
+		} else {
+			log.warn("비정기 주기에 예외 존재 : {}", term);
+			return null;
+		}
+
+		return termBuilder.toString();
+	}
+
+	static private void parseSector(Row row) {
+
+		// TODO : 주제 코드 및 주세 설명 DB 삽입. 후 pk 값 가져오기
+		String code = parseSectorCode(row);
+		String desc = parseSectorDesc(row);
+		Sector newSector = Sector.from(code, desc);
+	}
+
+	static private String parseSectorCode(Row row) {
+		String code = row.getCell(Column.SECTOR_CODE.value).getStringCellValue();
+		code = code.split(" ")[2];
+		return code;
+	}
+
+	static private String parseSectorDesc(Row row) {
+		return row.getCell(Column.STATS_NAME.value).getStringCellValue().trim();
+	}
+
+	static private String[] parseOrgName(Row row) {
+		String origin = row.getCell(Column.STATS_ORIGIN.getValue()).getStringCellValue();
+		String[] names = new String[2];
+		if (Strings.isEmpty(origin)) {
+			// TODO: 통계 출처 칸이 비어 있는 경우, 현재 2개의 예외만 존재. 모두 "통계청, 국가자산통계" 에 속하므로, 일단 하드 코딩 해둠. 나중에 바꿔야함.
+			log.warn("통계 출처가 비었습니다.");
+			names[0] = "통계청";
+			names[1] = "국가자산통계";
+		} else {
+
+			names[0] = origin.split(",")[0];
+			names[1] = origin.split(",")[1];
+			names[1] = names[1].trim().substring(1, names[1].length() - 1);
+		}
+		return names;
 	}
 
 	static private boolean isInteger(String str) {
