@@ -10,6 +10,9 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.sixbacks.fastats.statistics.entity.Sector;
+import org.sixbacks.fastats.statistics.entity.StatSurvey;
+import org.sixbacks.fastats.statistics.entity.StatTable;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +36,7 @@ public class XLSParser {
 			HSSFWorkbook workbook = new HSSFWorkbook(is);
 
 			Iterator<Sheet> iterator = workbook.sheetIterator();
-			int subjectIdx = 1;
+			long sectorIdx = 1;
 
 			while (iterator.hasNext()) {
 				Sheet curSheet = iterator.next();
@@ -46,7 +49,11 @@ public class XLSParser {
 						Cell rowCell = row.getCell(Column.LEVEL.getValue());
 						if (rowCell != null && SUBJECT.equals(rowCell.getStringCellValue())) {
 							// TODO : 주제 코드 및 주세 설명 DB 삽입. 후 pk 값 가져오기
-							subjectIdx++;
+							String code = row.getCell(Column.SECTOR_CODE.value).getStringCellValue();
+							code = code.split(" ")[2];
+							String desc = row.getCell(Column.STATS_NAME.value).getStringCellValue().trim();
+							Sector newSector = Sector.from(code, desc);
+							sectorIdx++;
 						}
 
 						//현재 row 가 통계표 명을 포함한 열이 아닐 경우 pass
@@ -54,6 +61,8 @@ public class XLSParser {
 							row.getCell(Column.STATS_LINK.getValue()).getStringCellValue()))) {
 							continue;
 						}
+						String orgName = null;
+						String name = null;
 
 						// 기관 , 통계명 parsing
 						String origin = row.getCell(Column.STATS_ORIGIN.getValue()).getStringCellValue();
@@ -62,15 +71,20 @@ public class XLSParser {
 							// System.out.println("통계 출처 비었음.");
 							// System.out.println("Sheet : " + curSheet.getSheetName());
 							// System.out.println("Row : " + rowIndex);
-							String agency = "통계청";
-							String statsName = "국가자산통계";
+							orgName = "통계청";
+							name = "국가자산통계";
 						} else {
 
-							String agency = origin.split(",")[0];
-							String statsName = origin.split(",")[1];
-							statsName = statsName.trim().substring(1, statsName.length() - 1);
+							orgName = origin.split(",")[0];
+							name = origin.split(",")[1];
+							name = name.trim().substring(1, name.length() - 1);
+
 						}
 						//수록 시작 시기, 주기 ,종료시기 parsing
+						String period = null;
+						String startDate = null;
+						String endDate = null;
+
 						String term = row.getCell(Column.STATS_TERM.getValue()).getStringCellValue();
 						if (Strings.isEmpty(term)) {
 							// TODO: 파일의 경우에도 알맞은 수록 시기 파싱. 현재는 NULL 로 냅둠
@@ -139,14 +153,14 @@ public class XLSParser {
 									log.warn("비정기 주기에 예외 존재 : {}", terms[0]);
 								}
 							}
-							String interval = termBuilder.toString();
+							period = termBuilder.toString();
 							termBuilder.setLength(0);
 
 							//시작 시기 parsing
 							if (!terms[1].startsWith("(")) {
 								log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
 							} else {
-								String startDate = terms[1].substring(1);
+								startDate = terms[1].substring(1);
 								if (!isInteger(startDate)) {
 									log.warn("시작 시기가 형식에 맞지 않는 경우 존재 : {}", terms[1]);
 								} else {
@@ -158,26 +172,27 @@ public class XLSParser {
 							if (!terms[3].endsWith(")")) {
 								log.warn("종료 시기가 형식에 맞지 않는 경우 존재 : {}", terms[3]);
 							} else {
-								String endDate = terms[3].substring(0, terms[3].length() - 1);
+								endDate = terms[3].substring(0, terms[3].length() - 1);
 								if (!isInteger(endDate)) {
 									log.warn("종료 시기가 형식에 맞지 않는 경우 존재.");
 								}
 							}
 
 							/// 통계표명 파싱
-							String statisticsTableName = row.getCell(Column.STATS_NAME.value)
+							String tableName = row.getCell(Column.STATS_NAME.value)
 								.getStringCellValue()
 								.trim();
-							if (Strings.isEmpty(statisticsTableName)) {
+							if (Strings.isEmpty(tableName)) {
 								log.warn("통계표 명이 비었습니다. : Sheet {}  Row {}", curSheet.getSheetName(), row.getRowNum());
 							}
 
 							/// 통계표 링크 파싱
+							String tableLink = null;
 							Hyperlink link = row.getCell(Column.STATS_LINK.value).getHyperlink();
 							if (link == null) {
 								log.warn("통계표 링크가 존재하지 않습니다.");
 							} else {
-								String statisticsLink = link.getAddress();
+								tableLink = link.getAddress();
 							}
 
 							// 통계표 아이디 파싱
@@ -187,6 +202,26 @@ public class XLSParser {
 							} else {
 								tableId.trim();
 							}
+
+							StatSurvey statSurvey = StatSurvey.from(
+								sectorIdx,
+								101,
+								orgName,
+								name,
+								startDate,
+								endDate,
+								period
+							);
+
+							StatTable statTable = StatTable.from(
+								statSurvey.getId(),
+								tableName,
+								null,
+								null,
+								tableId,
+								tableLink
+							);
+
 						}
 
 					}
@@ -217,7 +252,7 @@ public class XLSParser {
 
 	@Getter
 	public enum Column {
-		LEVEL(0), STATS_NAME(1), STATS_LINK(2), STATS_ORIGIN(3), STATS_TERM(4), STATS_ID(7);
+		LEVEL(0), STATS_NAME(1), STATS_LINK(2), STATS_ORIGIN(3), STATS_TERM(4), SECTOR_CODE(6), STATS_ID(7);
 		private final int value;
 
 		Column(int value) {
