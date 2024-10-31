@@ -44,4 +44,15 @@ public class CollInfo {
 
 		return new CollInfo(null, refStatTableId, startDate, endDate, period);
 	}
+
+	@Override
+	public String toString() {
+		return "CollInfo{" +
+			"id=" + id +
+			", refStatTableId=" + refStatTableId +
+			", startDate='" + startDate + '\'' +
+			", endDate='" + endDate + '\'' +
+			", period='" + period + '\'' +
+			'}';
+	}
 }
