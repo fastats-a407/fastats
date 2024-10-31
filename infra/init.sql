@@ -36,14 +36,14 @@ CREATE TABLE `stat_table` (
     CONSTRAINT `FK_stat_survey_TO_stat_table_1` FOREIGN KEY (`survey_id`) REFERENCES `stat_survey` (`id`)
 );
 
-DROP TABLE IF EXISTS `info`;
+DROP TABLE IF EXISTS `coll_info`;
 
-CREATE TABLE `info` (
+CREATE TABLE `coll_info` (
     `id`    BIGINT    NOT NULL AUTO_INCREMENT,
     `stat_table_id`    BIGINT    NOT NULL,
     `start_date`    VARCHAR(8)    NULL,
     `end_date`    VARCHAR(8)    NULL,
     `period`    VARCHAR(4)    NULL,
-    CONSTRAINT `PK_INFO_TABLE` PRIMARY KEY (`id`),
-    CONSTRAINT `FK_stat_table_TO_info_1` FOREIGN KEY (`stat_table_id`) REFERENCES `stat_table` (`id`)
+    CONSTRAINT `PK_COLL_INFO_TABLE` PRIMARY KEY (`id`),
+    CONSTRAINT `FK_stat_table_TO_coll_info_1` FOREIGN KEY (`stat_table_id`) REFERENCES `stat_table` (`id`)
 );
