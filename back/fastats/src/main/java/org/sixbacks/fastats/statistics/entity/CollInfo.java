@@ -27,14 +27,6 @@ public class CollInfo {
 	@Column("period")
 	private final String period;
 
-	public static CollInfo from(Long id, Long statTableId, String startDate, String endDate,
-		String period) {
-
-		AggregateReference<StatTable, Long> refStatTableId = AggregateReference.to(statTableId);
-
-		return new CollInfo(id, refStatTableId, startDate, endDate, period);
-	}
-
 	@PersistenceCreator
 	public CollInfo(Long id, AggregateReference<StatTable, Long> refStatTableId, String startDate, String endDate,
 		String period) {
@@ -43,5 +35,24 @@ public class CollInfo {
 		this.startDate = startDate;
 		this.endDate = endDate;
 		this.period = period;
+	}
+
+	public static CollInfo from(Long statTableId, String startDate, String endDate,
+		String period) {
+
+		AggregateReference<StatTable, Long> refStatTableId = AggregateReference.to(statTableId);
+
+		return new CollInfo(null, refStatTableId, startDate, endDate, period);
+	}
+
+	@Override
+	public String toString() {
+		return "CollInfo{" +
+			"id=" + id +
+			", refStatTableId=" + refStatTableId +
+			", startDate='" + startDate + '\'' +
+			", endDate='" + endDate + '\'' +
+			", period='" + period + '\'' +
+			'}';
 	}
 }
