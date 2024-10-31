@@ -1,8 +1,8 @@
 package org.sixbacks.fastats.statistics.repository;
 
-import org.sixbacks.fastats.statistics.entity.Sector;
-import org.springframework.data.repository.ListCrudRepository;
-
-public interface CollInfoRepository extends ListCrudRepository<Sector, Long> {
+/*
+	NOTE: 기능을 정의하기 위해 이용
+ */
+public interface CollInfoRepository {
 
 }
