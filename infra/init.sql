@@ -18,9 +18,6 @@ CREATE TABLE `stat_survey` (
     `org_code`    INT    NOT NULL,
     `org_name`    VARCHAR(64)    NOT NULL,
     `name`    VARCHAR(64)    NOT NULL,
-    `coll_start_date`    VARCHAR(8)    NULL,
-    `coll_end_date`    VARCHAR(8)    NULL,
-    `coll_period`    VARCHAR(4)    NULL,
     CONSTRAINT `PK_STAT_SURVEY` PRIMARY KEY (`id`),
     CONSTRAINT `FK_sector_TO_stat_survey_1` FOREIGN KEY (`sector_id`) REFERENCES `sector` (`id`)
 );
@@ -37,4 +34,16 @@ CREATE TABLE `stat_table` (
     `kosis_view_link`    TEXT    NULL,
     CONSTRAINT `PK_STAT_TABLE` PRIMARY KEY (`id`),
     CONSTRAINT `FK_stat_survey_TO_stat_table_1` FOREIGN KEY (`survey_id`) REFERENCES `stat_survey` (`id`)
+);
+
+DROP TABLE IF EXISTS `info`;
+
+CREATE TABLE `info` (
+    `id`    BIGINT    NOT NULL AUTO_INCREMENT,
+    `stat_table_id`    BIGINT    NOT NULL,
+    `start_date`    VARCHAR(8)    NULL,
+    `end_date`    VARCHAR(8)    NULL,
+    `period`    VARCHAR(4)    NULL,
+    CONSTRAINT `PK_INFO_TABLE` PRIMARY KEY (`id`),
+    CONSTRAINT `FK_stat_table_TO_info_1` FOREIGN KEY (`stat_table_id`) REFERENCES `stat_table` (`id`)
 );
