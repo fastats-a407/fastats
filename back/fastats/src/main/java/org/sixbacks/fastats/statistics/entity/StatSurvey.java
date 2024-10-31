@@ -19,7 +19,7 @@ public class StatSurvey {
 	private final Long id;
 
 	@Column("sector_id")
-	private final AggregateReference<Sector, Long> sectorId;
+	private final AggregateReference<Sector, Long> refSectorId;
 
 	@Column("org_code")
 	private final Integer orgCode;
@@ -30,34 +30,22 @@ public class StatSurvey {
 	@Column("name")
 	private final String name;
 
-	@Column("coll_start_date")
-	private final String collStartDate;
+	public static StatSurvey from(Long sectorId, Integer orgCode, String orgName,
+		String name) {
 
-	@Column("coll_end_date")
-	private final String collEndDate;
+		AggregateReference<Sector, Long> refSectorId = AggregateReference.to(sectorId);
 
-	@Column("coll_period")
-	private final String collPeriod;
-
-	public static StatSurvey from(Long rawSectorId, Integer orgCode, String orgName,
-		String name, String collStartDate, String collEndDate, String collPeriod) {
-
-		AggregateReference<Sector, Long> sectorId = AggregateReference.to(rawSectorId);
-		
-		return new StatSurvey(null, sectorId, orgCode, orgName,
-			name, collStartDate, collEndDate, collPeriod);
+		return new StatSurvey(null, refSectorId, orgCode, orgName,
+			name);
 	}
 
 	@PersistenceCreator
-	StatSurvey(Long id, AggregateReference<Sector, Long> sectorId, Integer orgCode, String orgName,
-		String name, String collStartDate, String collEndDate, String collPeriod) {
+	StatSurvey(Long id, AggregateReference<Sector, Long> refSectorId, Integer orgCode, String orgName,
+		String name) {
 		this.id = id;
-		this.sectorId = sectorId;
+		this.refSectorId = refSectorId;
 		this.orgCode = orgCode;
 		this.orgName = orgName;
 		this.name = name;
-		this.collStartDate = collStartDate;
-		this.collEndDate = collEndDate;
-		this.collPeriod = collPeriod;
 	}
 }
