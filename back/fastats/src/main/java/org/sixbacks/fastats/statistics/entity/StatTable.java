@@ -6,10 +6,13 @@ import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
+import lombok.Getter;
+
 /*
 	NOTE: 통계청 기준 '통계표'로 구분되는 데이터. 통계표.
  */
 @Table("stat_table")
+@Getter
 public class StatTable {
 
 	@Id
@@ -33,14 +36,6 @@ public class StatTable {
 	@Column("kosis_view_link")
 	private final String kosisViewLink;
 
-	public static StatTable from(Long surveyId, String name, String content,
-		String comment, String kosisTbId, String kosisViewLink) {
-
-		AggregateReference<StatSurvey, Long> refSurveyId = AggregateReference.to(surveyId);
-
-		return new StatTable(null, refSurveyId, name, content, comment, kosisTbId, kosisViewLink);
-	}
-
 	@PersistenceCreator
 	public StatTable(Long id, AggregateReference<StatSurvey, Long> refSurveyId, String name, String content,
 		String comment, String kosisTbId, String kosisViewLink) {
@@ -51,5 +46,26 @@ public class StatTable {
 		this.comment = comment;
 		this.kosisTbId = kosisTbId;
 		this.kosisViewLink = kosisViewLink;
+	}
+
+	public static StatTable from(Long surveyId, String name, String content,
+		String comment, String kosisTbId, String kosisViewLink) {
+
+		AggregateReference<StatSurvey, Long> refSurveyId = AggregateReference.to(surveyId);
+
+		return new StatTable(null, refSurveyId, name, content, comment, kosisTbId, kosisViewLink);
+	}
+
+	@Override
+	public String toString() {
+		return "StatTable{" +
+			"id=" + id +
+			", refSurveyId=" + refSurveyId +
+			", name='" + name + '\'' +
+			", content='" + content + '\'' +
+			", comment='" + comment + '\'' +
+			", kosisTbId='" + kosisTbId + '\'' +
+			", kosisViewLink='" + kosisViewLink + '\'' +
+			'}';
 	}
 }

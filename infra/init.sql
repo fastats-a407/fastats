@@ -28,7 +28,7 @@ CREATE TABLE `stat_table` (
     `id`    BIGINT    NOT NULL AUTO_INCREMENT,
     `survey_id`    INT    NOT NULL,
     `name`    VARCHAR(255)    NOT NULL,
-    `content`    TEXT    NOT NULL,
+    `content`    TEXT    NULL,
     `comment`    TEXT    NULL,
     `kosis_tb_id`    VARCHAR(64)    NOT NULL,
     `kosis_view_link`    TEXT    NULL,
