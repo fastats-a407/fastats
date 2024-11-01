@@ -23,10 +23,6 @@ public class Sector {
 	@Column("description")
 	private final String description;
 
-	public static Sector from(String code, String description) {
-		return new Sector(null, code, description);
-	}
-
 	@PersistenceCreator
 	Sector(Long id, String code, String description) {
 		this.id = id;
@@ -34,16 +30,17 @@ public class Sector {
 		this.description = description;
 	}
 
-	public Long getId() {
-		return id;
+	public static Sector from(String code, String description) {
+		return new Sector(null, code, description);
 	}
 
-	public String getCode() {
-		return code;
-	}
-
-	public String getDescription() {
-		return description;
+	@Override
+	public String toString() {
+		return "Sector{" +
+			"id=" + id +
+			", code='" + code + '\'' +
+			", description='" + description + '\'' +
+			'}';
 	}
 }
 
