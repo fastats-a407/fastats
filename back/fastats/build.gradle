@@ -35,7 +35,7 @@ dependencies {
 //    implementation 'org.springframework.data:spring-data-elasticsearch:5.3.3'
 //    implementation 'org.springframework.ai:spring-ai-elasticsearch-store:1.0.0-M3'
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+//    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.boot:spring-boot-starter-web'
