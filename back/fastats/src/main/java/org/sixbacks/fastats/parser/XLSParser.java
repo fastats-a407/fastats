@@ -263,15 +263,15 @@ public class XLSParser {
 					// 통계표 아이디 파싱
 					String tableId = parseTableId(row);
 
-					// Save StatSurvey
-					StatSurvey statSurvey = StatSurvey.from(
-						sectorIdx,
-						1L,
-						name
-					);
 					long orgId = statOrganizationRepository.findByName(orgName)
 						.map(StatOrganization::getId)
 						.orElseThrow();
+					// Save StatSurvey
+					StatSurvey statSurvey = StatSurvey.from(
+						sectorIdx,
+						orgId,
+						name
+					);
 
 					long statSurveyId = statSurveyRepository.findByRefOrgIdAndName(AggregateReference.to(orgId), name)
 						.orElseGet(() -> statSurveyRepository.save(statSurvey)).getId();
