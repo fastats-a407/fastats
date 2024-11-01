@@ -1,0 +1,57 @@
+pipeline {
+    agent any  // 빌드를 실행할 에이전트 설정
+    environment {
+        // 환경 변수 설정 (필요한 경우)
+        EXAMPLE_VAR = 'value'
+    }
+    stages {
+        stage('Prepare Git Info') {
+            steps {
+                script {
+                    env.GIT_AUTHOR_NAME = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
+                    env.GIT_AUTHOR_EMAIL = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
+                }
+            }
+        }
+        stage('Checkout Code') {
+            steps {
+                // 소스 코드를 체크아웃하는 단계
+                git branch: 'develop', 
+                    url: 'https://lab.ssafy.com/s11-final/S11P31A407.git',
+                    credentialsId: 'krca5876'
+            }
+        }
+        stage('Build') {
+            steps {
+                // 빌드 명령어 실행 (예: Gradle, Maven, npm 등)
+                sh './gradlew build'  // 예제: Gradle 빌드 명령어
+            }
+        }
+        stage('Test') {
+            steps {
+                // 테스트 명령어 실행
+                sh './gradlew test'  // 예제: 테스트 명령어
+            }
+        }
+        stage('Deploy') {
+            steps {
+                // 배포 명령어 실행
+                sh './deploy.sh'  // 예제: 배포 스크립트 실행
+            }
+        }
+    }
+    post {
+        always {
+            // 빌드가 끝난 후 항상 실행되는 단계 (예: 로그 정리, 알림 전송 등)
+            echo 'Pipeline finished.'
+        }
+        success {
+            // 빌드가 성공했을 때 실행되는 단계
+            echo 'Build and deployment successful!'
+        }
+        failure {
+            // 빌드가 실패했을 때 실행되는 단계
+            echo 'Build failed. Check the logs for details.'
+        }
+    }
+}
