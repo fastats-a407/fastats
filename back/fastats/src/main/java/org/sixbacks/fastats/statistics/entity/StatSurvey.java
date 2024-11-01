@@ -30,6 +30,16 @@ public class StatSurvey {
 	@Column("name")
 	private final String name;
 
+	@PersistenceCreator
+	StatSurvey(Long id, AggregateReference<Sector, Long> refSectorId, Integer orgCode, String orgName,
+		String name) {
+		this.id = id;
+		this.refSectorId = refSectorId;
+		this.orgCode = orgCode;
+		this.orgName = orgName;
+		this.name = name;
+	}
+
 	public static StatSurvey from(Long sectorId, Integer orgCode, String orgName,
 		String name) {
 
@@ -39,13 +49,14 @@ public class StatSurvey {
 			name);
 	}
 
-	@PersistenceCreator
-	StatSurvey(Long id, AggregateReference<Sector, Long> refSectorId, Integer orgCode, String orgName,
-		String name) {
-		this.id = id;
-		this.refSectorId = refSectorId;
-		this.orgCode = orgCode;
-		this.orgName = orgName;
-		this.name = name;
+	@Override
+	public String toString() {
+		return "StatSurvey{" +
+			"id=" + id +
+			", refSectorId=" + refSectorId +
+			", orgCode=" + orgCode +
+			", orgName='" + orgName + '\'' +
+			", name='" + name + '\'' +
+			'}';
 	}
 }
