@@ -3,6 +3,7 @@ package org.sixbacks.fastats.statistics.controller;
 import java.util.List;
 
 import org.sixbacks.fastats.global.response.ApiResponse;
+import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.service.CollInfoService;
 import org.sixbacks.fastats.statistics.service.SectorService;
