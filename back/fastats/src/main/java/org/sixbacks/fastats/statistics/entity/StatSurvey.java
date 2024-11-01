@@ -21,32 +21,28 @@ public class StatSurvey {
 	@Column("sector_id")
 	private final AggregateReference<Sector, Long> refSectorId;
 
-	@Column("org_code")
-	private final Integer orgCode;
-
-	@Column("org_name")
-	private final String orgName;
+	@Column("org_id")
+	private final AggregateReference<StatOrganization, Long> refOrgId;
 
 	@Column("name")
 	private final String name;
 
 	@PersistenceCreator
-	StatSurvey(Long id, AggregateReference<Sector, Long> refSectorId, Integer orgCode, String orgName,
+	StatSurvey(Long id, AggregateReference<Sector, Long> refSectorId,
+		AggregateReference<StatOrganization, Long> refOrgId,
 		String name) {
 		this.id = id;
 		this.refSectorId = refSectorId;
-		this.orgCode = orgCode;
-		this.orgName = orgName;
+		this.refOrgId = refOrgId;
 		this.name = name;
 	}
 
-	public static StatSurvey from(Long sectorId, Integer orgCode, String orgName,
+	public static StatSurvey from(Long sectorId, Long orgId,
 		String name) {
 
 		AggregateReference<Sector, Long> refSectorId = AggregateReference.to(sectorId);
-
-		return new StatSurvey(null, refSectorId, orgCode, orgName,
-			name);
+		AggregateReference<StatOrganization, Long> refOrgId = AggregateReference.to(orgId);
+		return new StatSurvey(null, refSectorId, refOrgId, name);
 	}
 
 	@Override
@@ -54,8 +50,7 @@ public class StatSurvey {
 		return "StatSurvey{" +
 			"id=" + id +
 			", refSectorId=" + refSectorId +
-			", orgCode=" + orgCode +
-			", orgName='" + orgName + '\'' +
+			", refOrgId=" + refOrgId +
 			", name='" + name + '\'' +
 			'}';
 	}
