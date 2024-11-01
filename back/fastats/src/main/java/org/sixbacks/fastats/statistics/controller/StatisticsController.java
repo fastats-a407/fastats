@@ -49,4 +49,24 @@ public class StatisticsController {
 		return null;
 	}
 
+	@GetMapping("/categories?keyword={keyword}")
+	public ResponseEntity<ApiResponse<CategoryListResponse>> getCategoryList(
+		@RequestParam String keyword
+	) {
+
+		return null;
+	}
+
+	/*
+		연관 검색어 추천 관련 Fast API 서버 응답 확정 시 구현
+		NOTE: 현재 generic을 ?로 설정했으므로 기능 코드 선제 작성 가능
+	 */
+	@GetMapping("/suggestions?keyword={keyword}")
+	public ResponseEntity<ApiResponse<?>> getKeywordSuggestions(
+		@RequestParam String keyword
+	) {
+
+		return null;
+	}
+
 }
