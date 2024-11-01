@@ -156,7 +156,9 @@ public class XLSParser {
 		String code = parseSectorCode(row);
 		String desc = parseSectorDesc(row);
 		Sector newSector = Sector.from(code, desc);
-		return SectorRepository.findByCode(code).orElseGet(() -> sectorRepository.save(newSector).getId();
+		return sectorRepository.findByCode(code)
+			.map(Sector::getId)
+			.orElseGet(() -> sectorRepository.save(newSector).getId());
 	}
 
 	private String parseSectorCode(Row row) {
