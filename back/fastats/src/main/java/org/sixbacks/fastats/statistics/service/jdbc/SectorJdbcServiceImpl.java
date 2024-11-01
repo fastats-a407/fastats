@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class SectorJdbcServiceImpl implements SectorService {
 
-	private final SectorRepository sectorJdbcRepository;
+	private final SectorJdbcRepository sectorJdbcRepository;
 
 	public SectorJdbcServiceImpl(SectorJdbcRepository sectorJdbcRepository) {
 		this.sectorJdbcRepository = sectorJdbcRepository;
