@@ -2,9 +2,7 @@ package org.sixbacks.fastats.parser;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 
 import org.apache.logging.log4j.util.Strings;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -14,13 +12,16 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.sixbacks.fastats.statistics.entity.CollInfo;
 import org.sixbacks.fastats.statistics.entity.Sector;
+import org.sixbacks.fastats.statistics.entity.StatOrganization;
 import org.sixbacks.fastats.statistics.entity.StatSurvey;
 import org.sixbacks.fastats.statistics.entity.StatTable;
 import org.sixbacks.fastats.statistics.repository.CollInfoRepository;
 import org.sixbacks.fastats.statistics.repository.SectorRepository;
+import org.sixbacks.fastats.statistics.repository.StatOrganizationRepository;
 import org.sixbacks.fastats.statistics.repository.StatSurveyRepository;
 import org.sixbacks.fastats.statistics.repository.StatTableRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,17 +38,21 @@ public class XLSParser {
 	private final CollInfoRepository collInfoRepository;
 	private final StatSurveyRepository statSurveyRepository;
 	private final StatTableRepository statTableRepository;
-	Set<String> tableIds = new HashSet<>();
+	private final StatOrganizationRepository statOrganizationRepository;
 
 	public XLSParser(
 		@Qualifier("sectorJdbcRepository") SectorRepository sectorRepository,
 		@Qualifier("collInfoJdbcRepository") CollInfoRepository collInfoRepository,
 		@Qualifier("statSurveyJdbcRepository") StatSurveyRepository statSurveyRepository,
-		@Qualifier("statTableJdbcRepository") StatTableRepository statTableRepository) {
+		@Qualifier("statTableJdbcRepository") StatTableRepository statTableRepository,
+		@Qualifier("statOrganizationJdbcRepository") StatOrganizationRepository statOrganizationRepository
+	) {
+
 		this.sectorRepository = sectorRepository;
 		this.collInfoRepository = collInfoRepository;
 		this.statSurveyRepository = statSurveyRepository;
 		this.statTableRepository = statTableRepository;
+		this.statOrganizationRepository = statOrganizationRepository;
 	}
 
 	private String parseTableId(Row row) {
@@ -261,11 +266,14 @@ public class XLSParser {
 					// Save StatSurvey
 					StatSurvey statSurvey = StatSurvey.from(
 						sectorIdx,
-						101, // TODO : 기관 코드 어디서 가져와야함
-						orgName,
+						1L,
 						name
 					);
-					long statSurveyId = statSurveyRepository.findByOrgNameAndName(orgName, name)
+					long orgId = statOrganizationRepository.findByName(orgName)
+						.map(StatOrganization::getId)
+						.orElseThrow();
+
+					long statSurveyId = statSurveyRepository.findByRefOrgIdAndName(AggregateReference.to(orgId), name)
 						.orElseGet(() -> statSurveyRepository.save(statSurvey)).getId();
 
 					// Save statTable
