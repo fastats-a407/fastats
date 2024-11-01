@@ -2,7 +2,9 @@ package org.sixbacks.fastats.statistics.repository;
 
 import java.util.Optional;
 
+import org.sixbacks.fastats.statistics.entity.StatOrganization;
 import org.sixbacks.fastats.statistics.entity.StatSurvey;
+import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.stereotype.Repository;
 
 /*
@@ -12,5 +14,5 @@ import org.springframework.stereotype.Repository;
 public interface StatSurveyRepository {
 	StatSurvey save(StatSurvey survey);
 
-	Optional<StatSurvey> findByOrgNameAndName(String orgName, String name);
+	Optional<StatSurvey> findByRefOrgIdAndName(AggregateReference<StatOrganization, Long> refOrgId, String name);
 }
