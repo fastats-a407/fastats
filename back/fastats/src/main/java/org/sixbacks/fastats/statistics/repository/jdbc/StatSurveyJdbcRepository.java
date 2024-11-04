@@ -3,7 +3,6 @@ package org.sixbacks.fastats.statistics.repository.jdbc;
 import java.util.List;
 
 import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
-import org.sixbacks.fastats.statistics.dto.response.StatDataDto;
 import org.sixbacks.fastats.statistics.entity.StatSurvey;
 import org.sixbacks.fastats.statistics.repository.StatSurveyRepository;
 import org.springframework.data.jdbc.repository.query.Query;
