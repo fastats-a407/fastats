@@ -3,7 +3,7 @@ package org.sixbacks.fastats.chatbot.controller;
 import org.sixbacks.fastats.chatbot.dto.request.ChatMessageDTO;
 import org.sixbacks.fastats.chatbot.dto.response.AIResponseDTO;
 import org.springframework.web.client.RestTemplate;
-
+ @Controller
 public class ChatbotAIController {
 
 	private RestTemplate restTemplate;
