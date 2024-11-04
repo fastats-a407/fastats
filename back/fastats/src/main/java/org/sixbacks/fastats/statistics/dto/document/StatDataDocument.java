@@ -3,7 +3,14 @@ package org.sixbacks.fastats.statistics.dto.document;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.ToString;
+
 @Document(indexName = "stat_data_index")
+@AllArgsConstructor
+@Getter
+@ToString
 public class StatDataDocument {
 	@Id
 	private Long tableId;
