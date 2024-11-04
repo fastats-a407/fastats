@@ -3,13 +3,7 @@ package org.sixbacks.fastats.statistics.service;
 import java.util.List;
 
 import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
-import org.sixbacks.fastats.statistics.dto.response.StatDataDto;
-import org.sixbacks.fastats.statistics.repository.jdbc.CollInfoJdbcRepository;
-import org.sixbacks.fastats.statistics.repository.jdbc.ElasticSearchJdbcRepository;
-import org.sixbacks.fastats.statistics.repository.jdbc.ElasticSearchRepository;
-import org.sixbacks.fastats.statistics.repository.jdbc.SectorJdbcRepository;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
-import org.sixbacks.fastats.statistics.repository.jdbc.StatTableJdbcRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Service;
@@ -23,7 +17,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	public ElasticSearchServiceImpl(
 		@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
 		@Qualifier("elasticSearchRepository") ElasticsearchRepository elasticsearchRepository
-		) {
+	) {
 		this.statSurveyJdbcRepository = statSurveyJdbcRepository;
 		this.elasticsearchRepository = elasticsearchRepository;
 	}
