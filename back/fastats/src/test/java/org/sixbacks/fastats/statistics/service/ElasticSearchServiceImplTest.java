@@ -87,4 +87,17 @@ public class ElasticSearchServiceImplTest {
 		System.out.println("saveData로 엘라스틱 서치에 저장된 데이터의 개수 : " + count);
 	}
 
+	@Test
+	public void testSaveDataWithBulkThroughMultiThreadsPerformance() throws InterruptedException {
+		long startTime = System.nanoTime();
+		elasticSearchService.saveDataWithBulkThroughMultiThreads();
+		long endTime = System.nanoTime();
+		long duration = endTime - startTime;
+		System.out.println("saveDataWithBulkThroughMultiThreads 실행 시간 (밀리초): " + (duration / 1_000_000) + "ms");
+		// Elasticsearch에서 데이터가 저장되었는지 확인
+		Iterable<StatDataDocument> responses = elasticsearchRepository.findAll();
+		// 데이터 개수 확인 및 출력
+		long count = StreamSupport.stream(responses.spliterator(), false).count();
+		System.out.println("saveDataWithBulkThroughMultiThreads 엘라스틱 서치에 저장된 데이터의 개수 : " + count);
+	}
 }
