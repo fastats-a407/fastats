@@ -154,7 +154,6 @@ public class XLSParser {
 		return termBuilder.toString();
 	}
 
-	@Transactional
 	protected long parseSector(Row row) {
 
 		// TODO : 주제 코드 및 주세 설명 DB 삽입. 후 pk 값 가져오기
@@ -206,6 +205,7 @@ public class XLSParser {
 		return true;
 	}
 
+	@Transactional
 	public void parse() {
 		// 리소스 파일을 InputStream 으로 불러오기
 
