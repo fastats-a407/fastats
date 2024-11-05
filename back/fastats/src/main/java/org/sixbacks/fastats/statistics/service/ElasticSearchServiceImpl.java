@@ -48,7 +48,6 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	}
 
 	@Override
-	// TODO : 메서드 분리 및 for문으로 BulkRequest에 넣어야하는지 고민 필요, APIResponse
 	public void saveDataWithBulk() {
 		List<StatDataDocument> responses = statSurveyJdbcRepository.findAllStatData();
 		log.info("데이터베이스에서 {}개의 문서를 조회했습니다.", responses.size());
@@ -69,6 +68,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	// 2. Bulk 요청 빌드
 	private BulkRequest buildBulkRequest(List<StatDataDocument> documents) {
 		BulkRequest bulkRequest = new BulkRequest();
+		// for문으로 BulkRequest에 넣어야하는지 고민 필요
 		for (StatDataDocument document : documents) {
 			String serializedDoc = serializeDocument(document);
 			if (serializedDoc != null) {
