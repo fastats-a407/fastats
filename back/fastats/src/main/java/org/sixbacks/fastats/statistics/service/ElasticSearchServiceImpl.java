@@ -1,5 +1,6 @@
 package org.sixbacks.fastats.statistics.service;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -44,36 +45,54 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		List<StatDataDocument> responses = statSurveyJdbcRepository.findAllStatData();
 		// 2. 각 칼럼을 Elastic Search Document의 형식에 맞게 입력
 		elasticsearchRepository.saveAll(responses);
-		// 3. 반환
 	}
 
 	@Override
 	// TODO : 메서드 분리 및 for문으로 BulkRequest에 넣어야하는지 고민 필요, APIResponse
 	public void saveDataWithBulk() {
-		// 1. CRUDRepository를 통해 필요한 데이터를 조회
 		List<StatDataDocument> responses = statSurveyJdbcRepository.findAllStatData();
 		log.info("데이터베이스에서 {}개의 문서를 조회했습니다.", responses.size());
-		// 2. BulkRequest 생성 및 데이터 추가
-		BulkRequest bulkRequest = new BulkRequest();
-		for (StatDataDocument document : responses) {
-			try {
-				IndexRequest indexRequest = new IndexRequest("stat_data_index").id(document.getTableId().toString())
-					.source(objectMapper.writeValueAsString(document), XContentType.JSON);
-				bulkRequest.add(indexRequest);
-			} catch (Exception e) {
-				log.error("문서 ID {}를 직렬화하는 중 오류 발생: {}", document.getTableId(), e.getMessage());
-			}
-		}
+		BulkRequest bulkRequest = buildBulkRequest(responses);
+		executeBulkRequest(bulkRequest);
+	}
+
+	// 1. 데이터 직렬화
+	private String serializeDocument(StatDataDocument document) {
 		try {
-			// 3. Bulk 요청 실행
-			BulkResponse bulkResponse = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
-			if (bulkResponse.hasFailures()) {
-				log.error("Bulk 인덱싱에 실패했습니다: {}", bulkResponse.buildFailureMessage());
-			} else {
-				log.info("Elasticsearch에 데이터가 성공적으로 인덱싱되었습니다.");
-			}
+			return objectMapper.writeValueAsString(document);
 		} catch (Exception e) {
-			log.error("Bulk 요청을 실행하는 중 오류 발생: {}", e.getMessage());
+			log.error("문서 ID {}를 직렬화하는 중 오류 발생: {}", document.getTableId(), e.getMessage());
+			return null;
 		}
 	}
+
+	// 2. Bulk 요청 빌드
+	private BulkRequest buildBulkRequest(List<StatDataDocument> documents) {
+		BulkRequest bulkRequest = new BulkRequest();
+		for (StatDataDocument document : documents) {
+			String serializedDoc = serializeDocument(document);
+			if (serializedDoc != null) {
+				IndexRequest indexRequest = new IndexRequest("stat_data_index")
+					.id(document.getTableId())
+					.source(serializedDoc, XContentType.JSON);
+				bulkRequest.add(indexRequest);
+			}
+		}
+		return bulkRequest;
+	}
+
+	// 3. Bulk 요청 전송
+	private void executeBulkRequest(BulkRequest bulkRequest) {
+		try {
+			BulkResponse bulkResponse = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
+			if (bulkResponse.hasFailures()) {
+				log.error("Bulk 요청 처리 중 오류 발생: {}", bulkResponse.buildFailureMessage());
+			} else {
+				log.info("Bulk 요청 성공적으로 완료!");
+			}
+		} catch (IOException e) {
+			log.error("Bulk 요청 전송 중 IOException 발생: {}", e.getMessage());
+		}
+	}
+
 }
