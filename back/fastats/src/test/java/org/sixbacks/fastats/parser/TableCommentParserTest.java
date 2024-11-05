@@ -1,13 +1,20 @@
 package org.sixbacks.fastats.parser;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.sixbacks.fastats.statistics.dto.preprocessing.TableCommentDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
-@ActiveProfiles("dev")
+@ActiveProfiles("local")
+@TestPropertySource(locations = "classpath:.env")
 public class TableCommentParserTest {
 	@Autowired
 	TableCommentParser tableCommentParser;
@@ -15,9 +22,8 @@ public class TableCommentParserTest {
 	@Test
 	public void parseTest() {
 		// tableCommentParser.parseComment();
+		TableCommentDto dto = tableCommentParser.getCommentAndContentsByTableId("DT_1IN1502").join();
 		Assertions.assertEquals(
-			tableCommentParser.getCommentAndContentsByTableId("DT_1IN1502")
-			,
 			"행정구역별(읍면동) 여자 내국인-남자 외국인-계 일반가구 주택_다세대주택 내국인-계 내국인-여자 집단가구 외국인-남자 주택_단독주택 총인구 주택_연립주택 남자 주택_아파트 주택_계 주택_비주거용 건물 내 주택 주택 이외의 거처_계 외국인-여자 가구-계 외국인가구 홍제3동 고등동 법전면 명호면 창녕군 방학3동 중계4동 백석1동 옥포2동 진북면 수내2동 서현2동 의정부2동 장암동 안양1동 안양4동 비산1동 관양1동 부천동 원미구 중2동 중4동 역곡3동 성곡동 하안1동 중앙동..."
 				+ " "
 				+ "주1) 총인구(외국인 포함) 주2) 가구형태(유형) - 일반가구(가구구분 항목 ①~④, " +
@@ -32,7 +38,23 @@ public class TableCommentParserTest {
 				" (행정구역분류코드 변경) 구 코드(7자리)에서 개정 코드(8자리)로 변경 - 과거 시점(2015~2022년) 자료도 소급 적용 주4)" +
 				" 개인정보 보호와 노출 위험성을 최소화하기 위하여 5미만 자료는 X로 표기함(이하 동일) 주5) 끝자리가 0, 5년인 해(2015," +
 				" 2020)는 읍면동, 그 외 연도는 시군구 단위 공표 ※ 2023년 자료 주요변경사항 1) (공표범위 확대) 연령 및 성별 " +
-				"인구(DT_1IN1503) 통계표 시군구에서 읍면동으로 공표 확대 2) (용어 정비) ① 귀화자 → 귀화자 등");
+				"인구(DT_1IN1503) 통계표 시군구에서 읍면동으로 공표 확대 2) (용어 정비) ① 귀화자 → 귀화자 등"
+			,
+			dto.comment() + " " + dto.content());
 	}
 
+	@Test
+	public void parseTest2() {
+		List<CompletableFuture> list = new ArrayList<>();
+		for (int i = 0; i < 10; i++) {
+			list.add(tableCommentParser.asyncDummy(i));
+		}
+		CompletableFuture.allOf(list.toArray(new CompletableFuture[0])).join();
+		for (int i = 0; i < 10; i++) {
+			Assertions.assertEquals(
+				i,
+				list.get(i).join()
+			);
+		}
+	}
 }
