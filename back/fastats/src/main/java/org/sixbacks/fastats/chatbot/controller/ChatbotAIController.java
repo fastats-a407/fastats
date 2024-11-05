@@ -8,9 +8,8 @@ import org.springframework.web.client.RestTemplate;
 @Controller
 public class ChatbotAIController {
 
-	private RestTemplate restTemplate;
-
 	private static final String AI_SERVER_URL = "http://localhost:8000/";
+	private RestTemplate restTemplate;
 
 	public AIResponseDTO processMessage(ChatMessageDTO chatMessageDTO) {
 		// FastAPI 서버에 JSON 형식으로 메시지를 전송
