@@ -1,5 +1,7 @@
 package org.sixbacks.fastats.statistics.dto.document;
 
+import java.util.UUID;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 
@@ -11,6 +13,8 @@ import lombok.ToString;
 @AllArgsConstructor
 @Getter
 @ToString
+/* TODO : PK 타입 : String(stat_table 기본키 가져오기(위 방식은 최신화시 전체 데이터에서 최신화된 데이터만 추가 시 유리
+  						/ UUID(위 방식은 최신화시 전체 데이터 삭제 후 다시 전체 데이터 삽입 시 유리할 것으로 판단)) */
 public class StatDataDocument {
 	@Id
 	private String tableId;
@@ -22,4 +26,8 @@ public class StatDataDocument {
 	private String statTableKosisViewLink; // kosis 표 보기 링크
 	private String collInfoStartDate;  // 수록 시작시기
 	private String collInfoEndDate;    // 수록 종료시기
+
+	public StatDataDocument() {
+		this.tableId = UUID.randomUUID().toString();
+	}
 }
