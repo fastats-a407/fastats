@@ -2,6 +2,9 @@ package org.sixbacks.fastats.statistics.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -95,4 +98,44 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		}
 	}
 
+	@Override
+	// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
+	public void saveDataWithBulkThroughMultiThreads() {
+		List<StatDataDocument> documents = statSurveyJdbcRepository.findAllStatData();
+		int batchSize = 500;
+		int numThreads = 4; // 병렬로 실행할 스레드 수
+		ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+		for (int i = 0; i < documents.size(); i += batchSize) {
+			final List<StatDataDocument> batch = documents.subList(i, Math.min(i + batchSize, documents.size()));
+			executorService.submit(() -> {
+				BulkRequest batchRequest = new BulkRequest();
+				for (StatDataDocument document : batch) {
+					String serializedDoc = serializeDocument(document);
+					if (serializedDoc != null) {
+						IndexRequest indexRequest = new IndexRequest("stat_data_index")
+							.id(document.getTableId())
+							.source(serializedDoc, XContentType.JSON);
+						batchRequest.add(indexRequest);
+					}
+				}
+				try {
+					BulkResponse bulkResponse = restHighLevelClient.bulk(batchRequest, RequestOptions.DEFAULT);
+					if (bulkResponse.hasFailures()) {
+						log.error("Bulk 요청 처리 중 오류 발생: {}", bulkResponse.buildFailureMessage());
+					} else {
+						log.info("Bulk 요청 성공적으로 완료!");
+					}
+				} catch (IOException e) {
+					log.error("Bulk 요청 전송 중 IOException 발생: {}", e.getMessage());
+				}
+			});
+		}
+		executorService.shutdown();
+		try {
+			executorService.awaitTermination(1, TimeUnit.HOURS);
+		} catch (InterruptedException e) {
+			log.error("멀티 스레딩 Bulk 작업 중 인터럽트 발생: {}", e.getMessage());
+		}
+
+	}
 }

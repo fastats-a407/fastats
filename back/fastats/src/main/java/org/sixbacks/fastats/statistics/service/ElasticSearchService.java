@@ -8,4 +8,6 @@ public interface ElasticSearchService {
 	void saveData();
 
 	void saveDataWithBulk();
+
+	void saveDataWithBulkThroughMultiThreads();
 }
