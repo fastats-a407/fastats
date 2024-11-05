@@ -13,7 +13,7 @@ import lombok.ToString;
 @ToString
 public class StatDataDocument {
 	@Id
-	private Long tableId;
+	private String tableId;
 	private String statSurveyName;     // 통계명
 	private String statOrgName;        // 기관명
 	private String statTableName;      // 통계표명
