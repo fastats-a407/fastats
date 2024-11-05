@@ -3,6 +3,8 @@ package org.sixbacks.fastats.statistics.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.sixbacks.fastats.global.error.ErrorCode;
+import org.sixbacks.fastats.global.exception.CustomException;
 import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
@@ -73,6 +75,14 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 
+		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
+		long totalHits = searchHits.getTotalHits();
+		int totalPages = (int)Math.ceil((double)totalHits / size);
+		if (page >= totalPages) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+
+		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
 			.map(hit -> docToResponse(hit.getContent()))
 			.collect(Collectors.toList());
