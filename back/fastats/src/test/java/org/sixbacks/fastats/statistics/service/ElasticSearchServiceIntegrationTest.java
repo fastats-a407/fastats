@@ -1,27 +1,36 @@
 package org.sixbacks.fastats.statistics.service;
 
+import static org.assertj.core.api.Assertions.*;
+
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
+import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+/*
+	TODO: 현재 테스트 환경이 아닌 로컬 개발 환경의 ElasticSearch를 이용하고 있으므로 분리 필요
+ */
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @ActiveProfiles("dev")
 @TestPropertySource(locations = "classpath:.env")
-public class ElasticSearchServiceImplTest {
+public class ElasticSearchServiceIntegrationTest {
 
 	@Autowired
 	private ElasticSearchService elasticSearchService;
 
-	@MockBean
+	@Autowired
 	private StatSurveyJdbcRepository statSurveyJdbcRepository;
 
 	@Autowired
@@ -35,5 +44,24 @@ public class ElasticSearchServiceImplTest {
 		// Elasticsearch에서 데이터가 저장되었는지 확인
 		Iterable<StatDataDocument> responses = elasticsearchRepository.findAll();
 		System.out.println(responses.iterator().next());
+	}
+
+	@Test
+	@DisplayName("ElasticSearch 키워드 기반 검색 테스트 - 키워드 포함 여부 검증")
+	public void testSearchByKeyword() throws JsonProcessingException {
+		// Given: Local 환경에서 해당 필드에 대해 keyword를 포함하는 데이터가 있다는 가정
+		String keyword = "Data";
+		int page = 0;
+		int size = 5;
+
+		// When: searchByKeyword() 메서드 검사
+		Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(keyword, page, size);
+
+		// Then: 검색 결과가 비어있지 않고
+		assertThat(responses).isNotNull();
+
+		responses.forEach(response -> {
+			assertThat(response.toString()).containsIgnoringCase(keyword);
+		});
 	}
 }
