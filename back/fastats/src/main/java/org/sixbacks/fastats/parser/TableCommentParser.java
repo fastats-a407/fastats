@@ -1,6 +1,10 @@
 package org.sixbacks.fastats.parser;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.sixbacks.fastats.statistics.dto.preprocessing.TableCommentDto;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -30,32 +34,48 @@ public class TableCommentParser {
 		this.restClient = RestClient.create();
 	}
 
-	public String getCommentAndContentsByTableId(String tableId) {
-		String response = restClient.get().uri(url, key, tableId).retrieve().body(String.class);
-		if (response == null) {
-			log.warn("응답 잘못됨. {}", tableId);
-			return null;
-		}
-		try {
-			response = response.replaceAll("(\\b[a-zA-Z0-9_]+)(\\s*):(?!//)", "\"$1\":");
-			JsonNode root = mapper.readTree(response);
-			if (root.isArray()) {
-				for (JsonNode item : root) {
-					String comment = item.path("ITEM03").asText();
-					String content = item.path("CONTENTS").asText();
-					return content + " " + comment;
-				}
-			} else {
-				log.warn("테이블 주석 요청의 응답이 배열 형식이 아닙니다. {}", response);
+	@Async
+	public CompletableFuture<TableCommentDto> getCommentAndContentsByTableId(String tableId) {
+		return CompletableFuture.supplyAsync(() -> {
+			String response = restClient.get().uri(url, key, tableId).retrieve().body(String.class);
+			if (response == null) {
+				log.warn("응답 잘못됨. {}", tableId);
+				return new TableCommentDto(null, null);
 			}
-		} catch (Exception e) {
-			log.error(response);
-			log.error("테이블 주석 및 컨텐츠 파싱 중 에러 발생 : {}", e.getMessage());
-		}
-		return null;
+			try {
+				response = response.replaceAll("(\\b[a-zA-Z0-9_]+)(\\s*):(?!//)", "\"$1\":");
+				JsonNode root = mapper.readTree(response);
+				if (root.isArray()) {
+					for (JsonNode item : root) {
+						String comment = item.path("ITEM03").asText();
+						String content = item.path("CONTENTS").asText();
+						return new TableCommentDto(comment, content);
+					}
+				} else {
+					log.warn("테이블({}) 주석 요청 에러. err : {} , errMsg: {}", tableId, root.path("err"),
+						root.path("errMsg"));
+				}
+			} catch (Exception e) {
+				log.error("테이블 ({}) 주석 및 컨텐츠 파싱 중 에러 발생 : {}", tableId, e.getMessage());
+				log.error("response : {}", response);
+			}
+			return new TableCommentDto(null, null);
+		});
 	}
 
-	public void parseComment() {
+	@Async
+	public CompletableFuture asyncDummy(int num) {
+		return CompletableFuture.supplyAsync(() -> {
+				log.info("Thread {} is started.", num);
+				try {
+					Thread.sleep(200);
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+				return num;
+			}
+
+		);
 
 	}
 }
