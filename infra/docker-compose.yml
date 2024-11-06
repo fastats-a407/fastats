@@ -8,6 +8,7 @@ services:
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false          # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
     ulimits:
       memlock:
         soft: -1
@@ -44,12 +45,12 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     command: >
       redis-server
-      --requirepass ${REDIS_PASSWORD}                  
-      --maxmemory 2GB                                  
-      --maxmemory-policy allkeys-lru                   
-      --appendonly no --save "900 1" --save "300 10" --save "60 10000"                                
-      --appendfilename appendonly.aof                  
-      --dir /data     
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 2GB
+      --maxmemory-policy allkeys-lru
+      --appendonly no --save "900 1" --save "300 10" --save "60 10000"
+      --appendfilename appendonly.aof
+      --dir /data
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
@@ -62,7 +63,7 @@ services:
     container_name: mysql
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-      # - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
     ports:
@@ -72,6 +73,60 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # SQL 파일 마운트
     networks:
       - fastats-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}
+      - ELASTICSEARCH_SERVICE_TOKEN=${ELASTICSEARCH_SERVICE_TOKEN}     
+    ports:
+      - "5601:5601"  # Kibana 웹 인터페이스 포트
+    networks:
+      - fastats-network
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+
+  # fastapi:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile.fastapi
+  #   container_name: fastapi
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - fastats-network
+
+  spring:
+    image: thundercloud3/fastats:test  # Docker Hub에 업로드된 이미지를 사용
+    container_name: spring
+    ports:
+      - "8080:8080"  # 호스트의 포트 8080을 컨테이너의 포트 8080에 매핑
+    volumes:
+      - ./application-dev.yml:/app/config/application-dev.yml  # application-dev.yml 파일을 컨테이너에 마운트      
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:${MYSQL_PORT}/fastats
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - SPRING_REDIS_HOST=${REDIS_HOST}
+      - SPRING_REDIS_PORT=${REDIS_PORT}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:${ES_PORT}
+      - SPRING_ELASTICSEARCH_USERNAME=elastic
+      - SPRING_ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=/app/config/application-dev.yml
+      # - SPRING_CONFIG_ADDITIONAL_LOCATION=classpath:/app/config/application-dev.yml
+    networks:
+      - fastats-network
+    depends_on:
+      - mysql
+      - kibana
+      - elasticsearch
+      - logstash
+      - redis
+    restart: always  # 컨테이너가 중단될 때 자동 재시작
 
 networks:
   fastats-network:
