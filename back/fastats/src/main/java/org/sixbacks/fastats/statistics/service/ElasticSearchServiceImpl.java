@@ -180,7 +180,30 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.withPageable(pageable)
 			.build();
 
+		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+
+		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
+		long totalHits = searchHits.getTotalHits();
+		int totalPages = (int)Math.ceil((double)totalHits / size);
+		if (page >= totalPages) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+
+		// 페이지가 적절한 경우 처리
+		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
+
+		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
+	}
+
+	/*
+		최적의 검색 결과 테스트를 위해 Query를 외부에서 작성해 넘기는 메서드
+	 */
+	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query) {
+
 		Pageable pageable = PageRequest.of(page, size);
+
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 
 		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
