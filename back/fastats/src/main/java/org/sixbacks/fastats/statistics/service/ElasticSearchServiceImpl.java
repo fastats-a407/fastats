@@ -200,6 +200,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	/*
 		최적의 검색 결과 테스트를 위해 Query를 외부에서 작성해 넘기는 메서드
 	 */
+	@Override
 	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query) {
 
 		Pageable pageable = PageRequest.of(page, size);
