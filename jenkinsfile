@@ -60,7 +60,7 @@ pipeline {
             steps {
                 sh 'echo "Writing kibana.yml file..."'
                 dir('infra') {
-                    writeFile file: '.yml', text: env.KIBANA
+                    writeFile file: 'kibana.yml', text: env.KIBANA
                 }
             }
         }
