@@ -48,4 +48,20 @@ public class StatTableRepositoryTest {
 
 	}
 
+	@Test
+	public void getTop500Test2() {
+		long id = 0;
+		List<StatTable> tableList = repository.findTop500ByIdGreaterThanAndCommentIsNullAndContentIsNull(id);
+
+		Assertions.assertNotNull(tableList, "tableList is null");
+		Assertions.assertEquals(500, tableList.size(), "tableList is less than 500");
+
+		id = 300000;
+		tableList = repository.findTop500ByIdGreaterThanAndCommentIsNullAndContentIsNull(id);
+
+		Assertions.assertNotNull(tableList, "tableList is null");
+		Assertions.assertEquals(0, tableList.size(), "tableList size is not 0");
+
+	}
+
 }
