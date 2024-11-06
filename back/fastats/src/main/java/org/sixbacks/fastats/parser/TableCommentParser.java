@@ -40,21 +40,21 @@ public class TableCommentParser {
 		return CompletableFuture.supplyAsync(() -> callApi(tableId));
 	}
 
-	private TableCommentDto callApi(String tableId) {
+	public TableCommentDto callApi(String tableId) {
 		String key = apiKeyManager.getApiKey();
 
-		String response = restClient.get()
-			.uri(url, key, tableId)
-			.accept(MediaType.APPLICATION_JSON)
-			.retrieve()
-			.body(String.class);
-		apiKeyManager.useApiKey(key);
-
-		if (response == null) {
-			log.warn("응답 잘못됨. {}", tableId);
-			return new TableCommentDto(null, null);
-		}
 		try {
+			String response = restClient.get()
+				.uri(url, key, tableId)
+				.accept(MediaType.APPLICATION_JSON)
+				.retrieve()
+				.body(String.class);
+			apiKeyManager.useApiKey(key);
+
+			if (response == null) {
+				log.warn("응답 잘못됨. {}", tableId);
+				return new TableCommentDto(null, null);
+			}
 			response = response.replaceAll("(\\b[a-zA-Z0-9_]+)(\\s*):(?!//)\\s*\"?([^\"]*)\"?", "\"$1\": \"$3\"");
 			JsonNode root = mapper.readTree(response);
 			if (root.isArray()) {
@@ -75,7 +75,7 @@ public class TableCommentParser {
 			}
 		} catch (Exception e) {
 			log.error("테이블 ({}) 주석 및 컨텐츠 파싱 중 에러 발생 : {}", tableId, e.getMessage());
-			log.error("response : {}", response);
+			log.debug("에러 원인 : ", e.getCause());
 		}
 		return new TableCommentDto(null, null);
 	}
