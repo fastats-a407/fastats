@@ -1,12 +1,28 @@
 pipeline {
     agent any  // 빌드를 실행할 에이전트 설정
+
     environment {
-        // 환경 변수 설정 (필요한 경우)
-        EXAMPLE_VAR = 'value'
+        ENV = credentials('env')
+        APP_DEV = credentials('application-dev')
+        KIBANA = credentials('kibana')
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
+
     stages {
+
+        stage('Lightsail Server Stage') {
+            steps {
+                // sshagent 블록을 사용해 SSH 자격 증명을 가져옴
+                sshagent(credentials: ['lightsail-ssh-credential-id']) {
+                    // SSH 접속을 위한 작업 실행
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@3.35.47.24 "echo Connected to Lightsail"'
+                }
+            }
+        }
+
         stage('Prepare Git Info') {
             steps {
+                sh 'echo "Preparing Git Info..."'
                 script {
                     env.GIT_AUTHOR_NAME = sh(script: "git show -s --pretty=%an", returnStdout: true).trim()
                     env.GIT_AUTHOR_EMAIL = sh(script: "git show -s --pretty=%ae", returnStdout: true).trim()
@@ -15,43 +31,108 @@ pipeline {
         }
         stage('Checkout Code') {
             steps {
+                sh 'echo "Checking out code from develop branch..."'
                 // 소스 코드를 체크아웃하는 단계
                 git branch: 'develop', 
                     url: 'https://lab.ssafy.com/s11-final/S11P31A407.git',
                     credentialsId: 'krca5876'
             }
         }
-        stage('Build') {
+
+        stage('Prepare Application Development') {
             steps {
-                // 빌드 명령어 실행 (예: Gradle, Maven, npm 등)
-                sh './gradlew build'  // 예제: Gradle 빌드 명령어
+                sh 'echo "Preparing application-dev.yml..."'
+                sh 'mkdir -p back/fastats/src/main/resources'
+                sh 'cp $APP_DEV back/fastats/src/main/resources/application-dev.yml'
             }
         }
-        stage('Test') {
+
+        stage('Prepare ENV') {
             steps {
-                // 테스트 명령어 실행
-                sh './gradlew test'  // 예제: 테스트 명령어
+                sh 'echo "Writing .env file..."'
+                dir('infra') {
+                    writeFile file: '.env', text: env.ENV
+                }
             }
         }
-        stage('Deploy') {
+
+        stage('Prepare KIBANA') {
             steps {
-                // 배포 명령어 실행
-                sh './deploy.sh'  // 예제: 배포 스크립트 실행
+                sh 'echo "Writing kibana.yml file..."'
+                dir('infra') {
+                    writeFile file: 'kibana.yml', text: env.KIBANA
+                }
             }
         }
+
+        stage('Build Backend') {
+            steps {
+                dir('back/fastats') {
+                    sh 'docker build -t thundercloud3/fastats:latest -f Dockerfile .'
+                }
+            }
+        }
+
+        stage('Push Backend to Docker Hub') {
+            steps {
+                script {
+                    // Docker Hub 로그인
+                    sh 'docker login -u "$DOCKER_HUB_CREDENTIALS_USR" -p "$DOCKER_HUB_CREDENTIALS_PSW"'
+                    // Docker Hub 이미지 푸시
+                    sh 'docker push thundercloud3/fastats:latest'
+                }
+            }
+        }
+
+        // stage('Build Frontend'){
+
+        // }
+
+        // stage('Push Frontend to Docker Hub') {
+        
+        // }
+
+        // stage('Build Python') {
+
+        // }
+
+        // stage('Push Python to Docker Hub') {
+        
+        // }
+
+        // stage('Test') {
+        //     steps {
+        //         // 테스트 명령어 실행
+        //         sh './gradlew test'  // 예제: 테스트 명령어
+        //     }
+        // }
+        
     }
     post {
         always {
             // 빌드가 끝난 후 항상 실행되는 단계 (예: 로그 정리, 알림 전송 등)
             echo 'Pipeline finished.'
+            cleanWs()
         }
         success {
-            // 빌드가 성공했을 때 실행되는 단계
-            echo 'Build and deployment successful!'
+            script {
+                mattermostSend(
+                    color: 'good',
+                    message: "빌드 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${env.GIT_AUTHOR_NAME}(${env.GIT_AUTHOR_EMAIL})\n(<${env.BUILD_URL}|Details>)",
+                    endpoint: 'https://meeting.ssafy.com/hooks/xposbeoc73fdir44i6pt3433ee',
+                    channel: '파자마'
+                )
+            }
         }
         failure {
-            // 빌드가 실패했을 때 실행되는 단계
-            echo 'Build failed. Check the logs for details.'
+            script {
+                mattermostSend(
+                    color: 'danger',
+                    message: "빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${env.GIT_AUTHOR_NAME}(${env.GIT_AUTHOR_EMAIL})\n(<${env.BUILD_URL}|Details>)",
+                    endpoint: 'https://meeting.ssafy.com/hooks/xposbeoc73fdir44i6pt3433ee',
+                    channel: '파자마'
+                )
+            }
         }
     }
 }
