@@ -30,8 +30,8 @@ stage('Prepare Git Info') {
         stage('Prepare Application Development') {
             steps {
                 sh 'echo "Preparing application-dev.yml..."'
-                sh 'mkdir -p BE/src/main/resources'
-                sh 'cp $APP_DEV BE/src/main/resources/application-dev.yml'
+                sh 'mkdir -p back/fastats/src/main/resources'
+                sh 'cp $APP_DEV back/fastats/src/main/resources/application-dev.yml'
             }
         }
 
@@ -55,8 +55,8 @@ stage('Prepare Git Info') {
 
         stage('Build Backend') {
             steps {
-                dir('BE') {
-                    sh 'docker build -t thundercloud3/fastats:latest -f Dockerfile.spring .'
+                dir('back/fastats') {
+                    sh 'docker build -t thundercloud3/fastats:latest -f Dockerfile .'
                 }
             }
         }
