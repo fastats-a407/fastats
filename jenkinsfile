@@ -5,10 +5,22 @@ pipeline {
         ENV = credentials('env')
         APP_DEV = credentials('application-dev')
         KIBANA = credentials('kibana')
+        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
     }
 
     stages {
-stage('Prepare Git Info') {
+
+        stage('Lightsail Server Stage') {
+            steps {
+                // sshagent 블록을 사용해 SSH 자격 증명을 가져옴
+                sshagent(credentials: ['lightsail-ssh-credential-id']) {
+                    // SSH 접속을 위한 작업 실행
+                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@3.35.47.24 "echo Connected to Lightsail"'
+                }
+            }
+        }
+
+        stage('Prepare Git Info') {
             steps {
                 sh 'echo "Preparing Git Info..."'
                 script {
@@ -61,39 +73,66 @@ stage('Prepare Git Info') {
             }
         }
 
+        stage('Push Backend to Docker Hub') {
+            steps {
+                script {
+                    // Docker Hub 로그인
+                    sh 'docker login -u "$DOCKER_HUB_CREDENTIALS_USR" -p "$DOCKER_HUB_CREDENTIALS_PSW"'
+                    // Docker Hub 이미지 푸시
+                    sh 'docker push thundercloud3/fastats:latest'
+                }
+            }
+        }
+
         // stage('Build Frontend'){
 
+        // }
+
+        // stage('Push Frontend to Docker Hub') {
+        
         // }
 
         // stage('Build Python') {
 
         // }
 
-        stage('Test') {
-            steps {
-                // 테스트 명령어 실행
-                sh './gradlew test'  // 예제: 테스트 명령어
-            }
-        }
-        stage('Deploy') {
-            steps {
-                // 배포 명령어 실행
-                sh './deploy.sh'  // 예제: 배포 스크립트 실행
-            }
-        }
+        // stage('Push Python to Docker Hub') {
+        
+        // }
+
+        // stage('Test') {
+        //     steps {
+        //         // 테스트 명령어 실행
+        //         sh './gradlew test'  // 예제: 테스트 명령어
+        //     }
+        // }
+        
     }
     post {
         always {
             // 빌드가 끝난 후 항상 실행되는 단계 (예: 로그 정리, 알림 전송 등)
             echo 'Pipeline finished.'
+            cleanWs()
         }
         success {
-            // 빌드가 성공했을 때 실행되는 단계
-            echo 'Build and deployment successful!'
+            script {
+                mattermostSend(
+                    color: 'good',
+                    message: "빌드 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${env.GIT_AUTHOR_NAME}(${env.GIT_AUTHOR_EMAIL})\n(<${env.BUILD_URL}|Details>)",
+                    endpoint: 'https://meeting.ssafy.com/hooks/xposbeoc73fdir44i6pt3433ee',
+                    channel: '파자마'
+                )
+            }
         }
         failure {
-            // 빌드가 실패했을 때 실행되는 단계
-            echo 'Build failed. Check the logs for details.'
+            script {
+                mattermostSend(
+                    color: 'danger',
+                    message: "빌드 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER} by ${env.GIT_AUTHOR_NAME}(${env.GIT_AUTHOR_EMAIL})\n(<${env.BUILD_URL}|Details>)",
+                    endpoint: 'https://meeting.ssafy.com/hooks/xposbeoc73fdir44i6pt3433ee',
+                    channel: '파자마'
+                )
+            }
         }
     }
 }
