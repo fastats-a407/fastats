@@ -16,6 +16,8 @@ public interface StatTableRepository {
 
 	List<StatTable> findTop500ByCommentAndContent(String comment, String content);
 
+	List<StatTable> findTop500ByIdGreaterThanAndCommentIsNullAndContentIsNull(Long id);
+
 	Page<StatTable> findByCommentAndContent(String comment, String content, Pageable pageable);
 
 	<S extends StatTable> List<S> saveAll(Iterable<S> statTables);

@@ -9,11 +9,7 @@ import org.sixbacks.fastats.statistics.dto.preprocessing.TableCommentDto;
 import org.sixbacks.fastats.statistics.entity.StatTable;
 import org.sixbacks.fastats.statistics.repository.StatTableRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,27 +25,31 @@ public class TableCommentService {
 		this.tableCommentParser = tableCommentParser;
 	}
 
-	@Transactional
 	public void fillCommentAndContent() {
-		// 500개를 불러 온다.
-		int pageSize = 5;
-		int pageNumber = 0;
-		Pageable page = PageRequest.of(pageNumber, pageSize);
-		Page<StatTable> tablePage = statTableRepository.findByCommentAndContent(null, null, page);
-		int maxPage = tablePage.getTotalPages();
-		maxPage = 3;
+		long last_id = 0;
+		while (true) {
+			// 500개를 불러 온다.
+			List<StatTable> statTableList = statTableRepository.findTop500ByIdGreaterThanAndCommentIsNullAndContentIsNull(
+				last_id);
 
-		for (pageNumber = 0; pageNumber < maxPage; pageNumber++) {
-			page = PageRequest.of(pageNumber, pageSize);
-			tablePage = statTableRepository.findByCommentAndContent(null, null, page);
-			List<StatTable> statTableList = tablePage.getContent();
+			if (statTableList == null || statTableList.isEmpty()) {
+				break;
+			}
+
+			// 비동기 시작
 			CompletableFuture<TableCommentDto>[] futures = statTableList.stream()
 				.map(statTable -> tableCommentParser.getCommentAndContentsByTableId(statTable.getKosisTbId()))
 				.toArray(CompletableFuture[]::new);
 
+			// 비동기 기다림
 			CompletableFuture.allOf(futures).join();
+
+			// api 요청 결과 저장
 			List<StatTable> resultList = new ArrayList<>(statTableList.size());
+
 			List<TableCommentDto> parseResult = Arrays.stream(futures).map(CompletableFuture::join).toList();
+
+			// 엔티티 업데이트
 			for (int i = 0; i < statTableList.size(); i++) {
 				var statTable = statTableList.get(i);
 				var dto = parseResult.get(i);
@@ -66,10 +66,17 @@ public class TableCommentService {
 				);
 			}
 
+			log.info("테이블 저장 : size : {}, last_idx : {}", resultList.size(), last_id);
+			last_id = statTableList.get(statTableList.size() - 1).getId();
 			statTableRepository.saveAll(resultList);
 		}
 
 		// List<StatTable> statTableList = statTableRepository.findTop500ByCommentAndContent(null, null);
+	}
+
+	public void testApi() {
+		var v = tableCommentParser.callApi("DT_623002_2022036");
+		log.info("API 테스트 결과 : {}", v);
 	}
 
 }

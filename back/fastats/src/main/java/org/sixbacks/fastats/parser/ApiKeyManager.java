@@ -15,13 +15,14 @@ public class ApiKeyManager {
 	private final ConcurrentHashMap<String, AtomicInteger> apiKeyMap = new ConcurrentHashMap<>();
 	private final ConcurrentLinkedQueue<String> apiKeyQueue = new ConcurrentLinkedQueue<>();
 
-	private final AtomicInteger MAX_REQUESTS = new AtomicInteger(300);
+	private final AtomicInteger MAX_REQUESTS = new AtomicInteger(39000);
 
 	public ApiKeyManager(@Value("${OPENAPI.KEYS}") String apiKeys) {
 		for (String apiKey : apiKeys.split("=")) {
 			apiKeyMap.put(apiKey + "=", new AtomicInteger(0));
 			apiKeyQueue.add(apiKey + "=");
 		}
+		log.info("ApiKeyManager: api key size =" + apiKeyQueue.size());
 	}
 
 	public String getApiKey() {
@@ -43,5 +44,6 @@ public class ApiKeyManager {
 	public void invalidateApiKey(String apiKey) {
 		log.warn("키 한도 소진 {}", apiKeyQueue.size());
 		apiKeyMap.remove(apiKey);
+		apiKeyQueue.poll();
 	}
 }
