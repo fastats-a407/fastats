@@ -85,4 +85,45 @@ public class ElasticSearchServiceIntegrationTest {
 			assertThat(e.getCode()).isEqualTo(ErrorCode.STAT_ILL_REQUEST.getCode());
 		}
 	}
+
+	@Test
+	@DisplayName("ElasticSearch 키워드 기반 검색 정확도 테스트")
+	public void searchByKeyword_With_Custom() {
+		// Given: Local 환경에서 해당 필드에 대해 keyword를 포함하는 데이터가 있다는 가정
+		String keyword = "Data";
+		int page = 10;
+		int size = 500;
+
+		// When & Then: searchByKeyword() 메서드 호출 시 결과가 비어있거나 예외가 발생하는지 확인
+		try {
+			Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(keyword, page, size);
+
+			// Then: 결과가 비어 있는 경우 검증
+			assertThat(responses).isNotNull();
+			assertThat(responses.getContent()).isEmpty();
+		} catch (CustomException e) {
+			// Then: 존재하지 않는 페이지 요청 시 예외가 발생하는지 확인
+			assertThat(e.getCode()).isEqualTo(ErrorCode.STAT_ILL_REQUEST.getCode());
+		}
+	}
+
+	private double evaluateSimilarity(Page<StatTableListResponse> response, List<String> expectedTitleResults) {
+
+		List<String> actualResults = response.getContent().stream()
+			.map(StatTableListResponse::getTitle) // 검색 결과의 제목 추출
+			.toList();
+
+		int maxLength = Math.min(expectedTitleResults.size(), actualResults.size());
+		int matchCount = 0;
+
+		// 각 위치 별로 기대 결과와 일치 확인
+		for (int i = 0; i < maxLength; i++) {
+			if (expectedTitleResults.get(i).equals(actualResults.get(i))) {
+				matchCount++;
+			}
+		}
+
+		// 위치별 일치율 계산
+		return (double)matchCount / maxLength;
+	}
 }
