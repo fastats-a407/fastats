@@ -1,10 +1,16 @@
 services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
-    container_name: elasticsearch
+  elasticsearch-node1:
+    build:
+      dockerfile: Dockerfile.elastic  # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}"  # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node1
     environment:
-      - discovery.type=single-node
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
       - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node1
+      - node.roles=master,data
       - bootstrap.memory_lock=true
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
@@ -14,9 +20,66 @@ services:
         soft: -1
         hard: -1
     ports:
-      - "${ES_PORT}:9200"
+      - "${ES_PORT_NODE1}:9200"
     volumes:
-      - es_data:/usr/share/elasticsearch/data
+      - es_data_node1:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
+    networks:
+      - fastats-network
+
+  elasticsearch-node2:
+    build:
+      dockerfile: Dockerfile.elastic  # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}"  # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node2
+    environment:
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node2
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false         # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ES_PORT_NODE2}:9200"
+    volumes:
+      - es_data_node2:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
+    networks:
+      - fastats-network
+
+  elasticsearch-node3:
+    build:
+      dockerfile: Dockerfile.elastic  # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}"  # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node3
+    environment:
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node3
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false         # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ES_PORT_NODE3}:9200"
+    volumes:
+      - es_data_node3:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
     networks:
       - fastats-network
 
@@ -35,7 +98,9 @@ services:
     networks:
       - fastats-network
     depends_on:
-      - elasticsearch
+      - elasticsearch-node1
+      - elasticsearch-node2
+      - elasticsearch-node3
       - mysql
 
   redis:
@@ -85,7 +150,9 @@ services:
     networks:
       - fastats-network
     depends_on:
-      - elasticsearch
+    - elasticsearch-node1
+    - elasticsearch-node2
+    - elasticsearch-node3
     volumes:
       - ./kibana.yml:/usr/share/kibana/config/kibana.yml
 
@@ -113,7 +180,7 @@ services:
       - SPRING_REDIS_HOST=${REDIS_HOST}
       - SPRING_REDIS_PORT=${REDIS_PORT}
       - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
-      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:${ES_PORT}
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch-node1:${ES_PORT_NODE1},http://elasticsearch-node2:${ES_PORT_NODE2},http://elasticsearch-node3:${ES_PORT_NODE3}
       - SPRING_ELASTICSEARCH_USERNAME=elastic
       - SPRING_ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
       - SPRING_CONFIG_ADDITIONAL_LOCATION=/app/config/application-dev.yml
@@ -123,7 +190,9 @@ services:
     depends_on:
       - mysql
       - kibana
-      - elasticsearch
+      - elasticsearch-node1
+      - elasticsearch-node2
+      - elasticsearch-node3
       - logstash
       - redis
     restart: always  # 컨테이너가 중단될 때 자동 재시작
@@ -133,10 +202,13 @@ networks:
     driver: bridge
 
 volumes:
-  es_data:
+  es_data_node1:
+    driver: local
+  es_data_node2:
+    driver: local
+  es_data_node3:
     driver: local
   redis_data:
     driver: local
   mysql_data:
     driver: local
-    
