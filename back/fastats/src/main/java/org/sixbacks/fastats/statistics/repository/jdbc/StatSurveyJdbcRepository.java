@@ -3,10 +3,12 @@ package org.sixbacks.fastats.statistics.repository.jdbc;
 import java.util.List;
 
 import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
+import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.StatSurvey;
 import org.sixbacks.fastats.statistics.repository.StatSurveyRepository;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
+import org.springframework.data.repository.query.Param;
 
 public interface StatSurveyJdbcRepository extends StatSurveyRepository, ListCrudRepository<StatSurvey, String> {
 
@@ -39,7 +41,6 @@ public interface StatSurveyJdbcRepository extends StatSurveyRepository, ListCrud
 		""")
 	List<StatDataDocument> findAllStatData();
 
-
 	@Query("""
 		SELECT
 		    COUNT(*)
@@ -54,4 +55,83 @@ public interface StatSurveyJdbcRepository extends StatSurveyRepository, ListCrud
 		""")
 	Integer countAllStatData();
 
+	@Query("""
+		    SELECT 
+		        st.name AS title,
+		        so.name AS org_name,
+		        ss.name AS stat_title,
+		        st.kosis_view_link AS stat_link,
+		        ci.start_date AS coll_start_date,
+		        ci.end_date AS coll_end_date,
+		        st.kosis_view_link AS table_link,
+				(CASE WHEN ss.name LIKE CONCAT('%', :keyword, '%') THEN 5 ELSE 0 END +
+				 CASE WHEN st.content LIKE CONCAT('%', :keyword, '%') THEN 4 ELSE 0 END +
+				 CASE WHEN st.comment LIKE CONCAT('%', :keyword, '%') THEN 3 ELSE 0 END +
+				 CASE WHEN st.name LIKE CONCAT('%', :keyword, '%') THEN 2 ELSE 0 END +
+				 CASE WHEN so.name LIKE CONCAT('%', :keyword, '%') THEN 1 ELSE 0 END) AS relevance_score
+		    FROM 
+		        stat_table st
+		    JOIN 
+		        stat_survey ss ON st.survey_id = ss.id
+		    JOIN 
+		        stat_org so ON ss.org_id = so.id
+		    LEFT JOIN 
+		        coll_info ci ON ci.stat_table_id = st.id
+		    WHERE 
+		        (ss.name LIKE CONCAT('%', :keyword, '%') OR
+				 st.content LIKE CONCAT('%', :keyword, '%') OR
+				 st.comment LIKE CONCAT('%', :keyword, '%') OR
+				 st.name LIKE CONCAT('%', :keyword, '%') OR
+				 so.name LIKE CONCAT('%', :keyword, '%'))
+		 	ORDER BY
+		      	relevance_score DESC,
+		      	st.name                
+		    LIMIT :limit OFFSET :offset
+		""")
+	List<StatTableListResponse> findStatTableListResponsesByKeywordThroughLike(
+		@Param("keyword") String keyword,
+		@Param("limit") int limit,
+		@Param("offset") int offset);
+
+	/*
+		NOTE: MySQL에서 ALTER TABLE을 통한 테이블 별 FULL TEXT INDEX 생성 필요
+	 */
+	@Query(value = """
+		SELECT 
+		    st.name AS title,
+		    so.name AS org_name,
+		    ss.name AS stat_title,
+		    st.kosis_view_link AS stat_link,
+		    ci.start_date AS coll_start_date,
+		    ci.end_date AS coll_end_date,
+		    st.kosis_view_link AS table_link,
+		    -- 각 테이블의 MATCH 결과에 가중치를 부여
+		    (
+		      (5 * MATCH(ss.name) AGAINST(:keyword IN BOOLEAN MODE)) +
+		      (4 * MATCH(st.name, st.content, st.comment) AGAINST(:keyword IN BOOLEAN MODE)) +
+		      (1 * MATCH(so.name) AGAINST(:keyword IN BOOLEAN MODE))
+		    ) AS relevance_score
+		FROM 
+		    stat_table st
+		JOIN 
+		    stat_survey ss ON st.survey_id = ss.id
+		JOIN 
+		    stat_org so ON ss.org_id = so.id
+		LEFT JOIN 
+		    coll_info ci ON ci.stat_table_id = st.id
+		WHERE 
+		    (
+		      MATCH(ss.name) AGAINST(:keyword IN BOOLEAN MODE) OR
+		      MATCH(st.name, st.content, st.comment) AGAINST(:keyword IN BOOLEAN MODE) OR
+		      MATCH(so.name) AGAINST(:keyword IN BOOLEAN MODE)
+		    )
+		ORDER BY
+		    relevance_score DESC,
+		    st.name
+		LIMIT :limit OFFSET :offset
+		""")
+	List<StatTableListResponse> findStatTableListResponsesByKeywordWithFullText(
+		@Param("keyword") String keyword,
+		@Param("limit") int limit,
+		@Param("offset") int offset);
 }
