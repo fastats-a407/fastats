@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -163,10 +164,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size) {
 
-		PageRequest pageable = PageRequest.of(page, size);
+		Pageable pageable = PageRequest.of(page, size);
 
-		// ElasticSearch API 쿼리 작성
-		// fields
 		Query query = NativeQuery.builder()
 			.withQuery(q -> q
 				.multiMatch(m -> m
@@ -180,6 +179,31 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			)
 			.withPageable(pageable)
 			.build();
+
+		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+
+		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
+		long totalHits = searchHits.getTotalHits();
+		int totalPages = (int)Math.ceil((double)totalHits / size);
+		if (page >= totalPages) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+
+		// 페이지가 적절한 경우 처리
+		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
+
+		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
+	}
+
+	/*
+		최적의 검색 결과 테스트를 위해 Query를 외부에서 작성해 넘기는 메서드
+	 */
+	@Override
+	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query) {
+
+		Pageable pageable = PageRequest.of(page, size);
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 
@@ -213,5 +237,4 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			document.getStatTableKosisViewLink() // tableLink
 		);
 	}
-
 }
