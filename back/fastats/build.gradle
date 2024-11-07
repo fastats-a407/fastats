@@ -24,9 +24,9 @@ repositories {
     maven { url 'https://repo.spring.io/milestone' }
 }
 
-//ext {
-//    set('springAiVersion', "1.0.0-M3")
-//}
+ext {
+    set('springAiVersion', "1.0.0-M3")
+}
 
 dependencies {
 //    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
@@ -36,6 +36,7 @@ dependencies {
 //    implementation 'org.springframework.data:spring-data-elasticsearch:5.3.3'
 //    implementation 'org.springframework.ai:spring-ai-elasticsearch-store:1.0.0-M3'
     implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'
+    implementation 'org.springframework.ai:spring-ai-ollama-spring-boot-starter'
 //    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
@@ -48,18 +49,18 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2'
     // https://mvnrepository.com/artifact/org.apache.poi/poi
     implementation 'org.apache.poi:poi:5.3.0'
     implementation 'org.apache.poi:poi-ooxml:5.3.0'
 
 }
 
-//dependencyManagement {
-//    imports {
-//        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
-//    }
-//}
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:${springAiVersion}"
+    }
+}
 
 tasks.named('test') {
     useJUnitPlatform()
