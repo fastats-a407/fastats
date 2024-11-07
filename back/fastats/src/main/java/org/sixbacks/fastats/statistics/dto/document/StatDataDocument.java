@@ -4,6 +4,8 @@ import java.util.UUID;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
+import org.springframework.data.elasticsearch.annotations.Field;
+import org.springframework.data.elasticsearch.annotations.FieldType;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,7 +26,11 @@ public class StatDataDocument {
 	private String statTableContent;   // 내용
 	private String statTableComment;   // 주석
 	private String statTableKosisViewLink; // kosis 표 보기 링크
+
+	@Field(type = FieldType.Date, format = {}, pattern = "yyyyMMdd")
 	private String collInfoStartDate;  // 수록 시작시기
+
+	@Field(type = FieldType.Date, format = {}, pattern = "yyyyMMdd")
 	private String collInfoEndDate;    // 수록 종료시기
 
 	public StatDataDocument() {
