@@ -5,11 +5,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.sixbacks.fastats.chatbot.dto.request.ChatMessageDTO;
-import org.sixbacks.fastats.chatbot.dto.response.AIResponseDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,20 +22,22 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 @RequestMapping("/api/v1/chatbot")
 public class ChatbotController {
 
-	// autowired 나중에 확인하기
-	// @Autowired
-	private ChatbotAIController chatbotAIController;
-
 	private final Map<String, SseEmitter> activeSessions = new ConcurrentHashMap<>();
+	private final ChatClient chatClient;
+
+
+	public ChatbotController(ChatClient.Builder chatClient) {
+		this.chatClient = chatClient.build();
+	}
 
 	@PostMapping("/stream")
-	public SseEmitter startStream(@RequestParam String sessionId) {
+	public SseEmitter startStream(@CookieValue("sessionID") String sessionId) {
 		// 중복 sessionID 확인
 		if (activeSessions.containsKey(sessionId)) {
 			throw new RuntimeException("Session already exists");
 		}
 
-		SseEmitter sseEmitter = new SseEmitter();
+		SseEmitter sseEmitter = new SseEmitter(300000L);
 		activeSessions.put(sessionId, sseEmitter);
 
 		// 연결되었음을 알리는 메시지 전송
@@ -51,30 +53,44 @@ public class ChatbotController {
 		return sseEmitter;
 	}
 
-	// 일단 문장을 받고 map에 넣어놓고, application/json 형식으로 보낸다
 	// 요청은 post 요청으로 보낸다
-	@PostMapping
+	@PostMapping("/message")
 	public ResponseEntity<String> handleChat(@RequestBody ChatMessageDTO chatMessageDTO, @CookieValue("sessionID") String sessionId) {
 
 		SseEmitter sseEmitter = activeSessions.get(sessionId);
 		if (sseEmitter == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Session not found or closed");
 		}
-
-		// String message = chatMessageDTO.getMessage();
+		// 연결된 Stream이 없을 경우 세션이 없다고 반응
 
 		new Thread(() -> {
 			try {
-				AIResponseDTO aiResponseDTO = chatbotAIController.processMessage(chatMessageDTO);
-				String responseText = aiResponseDTO.getResponse();
+				String responseText = chatClient.prompt()
+					// .user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
+					.user(chatMessageDTO.getMessage())
+					.call()
+					.content();
+				System.out.println(responseText);
+				// 확인용
 				sseEmitter.send(responseText);
 			}catch (IOException e) {
 				sseEmitter.completeWithError(e);
 			}
 		}).start();
+		// thread는 생성되고 다 끝나면 자동으로 삭제가 됨
 
 		return ResponseEntity.ok("Message processing started");
 	}
+
+	@GetMapping("")
+	public String mess(){
+		return chatClient.prompt()
+			.user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
+			.call()
+			.content();
+	}
+	// 내일도 확인용
+
 
 	@PostMapping("/end")
 	public void endStream(@RequestParam String sessionId) {
@@ -84,5 +100,4 @@ public class ChatbotController {
 			activeSessions.remove(sessionId);
 		}
 	}
-
 }
