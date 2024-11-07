@@ -1,0 +1,11 @@
+# Dockerfile for Elasticsearch with Nori plugin
+ARG STACK_VERSION  # STACK_VERSION 변수를 ARG로 선언
+FROM docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+
+# Install Nori plugin if not already installed
+RUN if ! elasticsearch-plugin list | grep -q 'analysis-nori'; then \
+    elasticsearch-plugin install analysis-nori; \
+  fi
+
+# user dictionary 추가
+# COPY userdict_ko.txt /usr/share/elasticsearch/config/userdict_ko.txt
