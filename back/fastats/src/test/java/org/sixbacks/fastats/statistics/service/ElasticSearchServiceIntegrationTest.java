@@ -94,8 +94,8 @@ public class ElasticSearchServiceIntegrationTest {
 	}
 
 	@Test
-	@DisplayName("ElasticSearch 키워드 기반 검색 정확도 테스트")
-	public void testSearchQuerySimilarity() {
+	@DisplayName("ElasticSearch 키워드 기반 검색 정확도 및 성능 테스트")
+	public void testSearchQuerySimilarityAndPerformance() {
 		// 비교할 키워드와 기대되는 결과 세트 (실제 사이트 기준)
 		String keyword = "일반가구";
 		List<String> expectedResults = List.of("가구주의 성, 연령 및 거처의 종류별 가구(일반가구) - 시군구",
@@ -125,8 +125,67 @@ public class ElasticSearchServiceIntegrationTest {
 			.addPageable(pageable)
 			.build();
 
+		long startTime = System.currentTimeMillis();
+
 		// 각 쿼리를 실행하여 결과를 얻음
 		Page<StatTableListResponse> result = elasticSearchService.searchByKeyword(keyword, page, size, query);
+
+		long endTime = System.currentTimeMillis();
+		long duration = endTime - startTime;
+		System.out.println("Query Execution Time: " + duration + " ms");
+
+		// 유사도를 평가하는 메서드를 사용하여 결과를 비교
+		double similarityScore1 = evaluateSimilarity(result, expectedResults);
+
+		// 로그로 각 쿼리의 유사도 점수를 출력
+		System.out.println("Similarity Score for Query 1: " + similarityScore1);
+
+		// 가장 높은 유사도 점수를 얻는 쿼리가 있는지 검증 (예: 0.8 이상을 기대)
+		assertTrue("Query 1 is similar enough",
+			similarityScore1 >= 0.8);
+	}
+
+	@Test
+	@DisplayName("ElasticSearch 키워드 기반 Nori 적용 검색 정확도 테스트")
+	public void testSearchQuerySimilarityAndPerformanceWithNori() {
+		// 비교할 키워드와 기대되는 결과 세트 (실제 사이트 기준)
+		String keyword = "인구";
+		List<String> expectedResults = List.of("가구주의 성, 연령 및 거처의 종류별 가구(일반가구) - 시군구",
+			"가구주의 성, 연령 및 세대구성별 가구(일반가구) - 시군구",
+			"세대구성 및 가구원수별 가구(일반가구) - 시군구",
+			"세대구성별 가구 및 가구원(일반가구) - 시군구",
+			"고령자(65세이상) 가구(일반가구) - 시군구",
+			"거처의 종류 및 가구원수별 가구(일반가구) - 시군구",
+			"(일반가구)지역별 소득계층별 점유형태",
+			"(일반가구)지역별 소득계층별 주택유형",
+			"(일반가구)행정구역별 점유형태",
+			"(일반가구)행정구역별 주택유형");
+
+		int page = 0;
+		int size = 10;
+
+		Pageable pageable = PageRequest.of(page, size);
+
+		// MultiMatchQueryCustomBuilder()를 이용한 쿼리 생성
+		Query query = new MultiMatchQueryCustomBuilder()
+			.withKeyword(keyword)
+			.addFieldWithBoost("statSurveyName", 1.2f)
+			.addFieldWithBoost("statOrgName", 1.0f)
+			.addFieldWithBoost("statTableName", 1.6f)
+			.addFieldWithBoost("statTableContent", 1.2f)
+			.addFieldWithBoost("statTableComment", 1.2f)
+			.addPageable(pageable)
+			.withAnalyzer("nori")
+			.build();
+
+		long startTime = System.currentTimeMillis();
+
+		// 각 쿼리를 실행하여 결과를 얻음
+		Page<StatTableListResponse> result = elasticSearchService.searchByKeyword(keyword, page, size, query);
+
+		long endTime = System.currentTimeMillis();
+		long duration = endTime - startTime;
+		System.out.println("Query Execution Time: " + duration + " ms");
 
 		// 유사도를 평가하는 메서드를 사용하여 결과를 비교
 		double similarityScore1 = evaluateSimilarity(result, expectedResults);
