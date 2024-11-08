@@ -21,12 +21,25 @@ import lombok.ToString;
  */ public class StatDataDocument {
 	@Id
 	private String tableId;
-	private String sectorName;         // 주제명
-	private String statSurveyName;     // 통계명
-	private String statOrgName;        // 기관명
-	private String statTableName;      // 통계표명
-	private String statTableContent;   // 내용
-	private String statTableComment;   // 주석
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String sectorName;           // 주제명
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String statSurveyName;       // 통계명
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String statOrgName;          // 기관명
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String statTableName;        // 통계표명
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String statTableContent;     // 내용
+
+	@Field(type = FieldType.Text, analyzer = "nori")
+	private String statTableComment;     // 주석
+
 	private String statTableKosisViewLink; // kosis 표 보기 링크
 
 	@Field(type = FieldType.Date, format = {}, pattern = "yyyyMMdd")
