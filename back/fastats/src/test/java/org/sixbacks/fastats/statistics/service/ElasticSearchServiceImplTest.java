@@ -4,7 +4,7 @@ import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
+import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
