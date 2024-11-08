@@ -1,5 +1,7 @@
 package org.sixbacks.fastats.chatbot.controller;
 
+import static co.elastic.clients.elasticsearch.snapshot.SnapshotSort.*;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,15 +9,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.sixbacks.fastats.chatbot.dto.request.ChatMessageDTO;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
 
 // 챗봇의 메시지와 SSE를 조정하는 컨트롤러
 @RestController
@@ -30,8 +32,15 @@ public class ChatbotController {
 		this.chatClient = chatClient.build();
 	}
 
-	@PostMapping("/stream")
-	public SseEmitter startStream(@CookieValue("sessionID") String sessionId) {
+	@PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public SseEmitter startStream(@CookieValue(value = "sessionID") String sessionId) {
+	// public SseEmitter startStream(@RequestBody String sessionId) {
+	// 	System.out.println(sessionId);
+		if (sessionId == null) {
+			System.out.println("SessionID 쿠키가 없습니다.");
+			return null; // 오류 처리를 위한 코드
+		}
+
 		// 중복 sessionID 확인
 		if (activeSessions.containsKey(sessionId)) {
 			throw new RuntimeException("Session already exists");
@@ -54,7 +63,7 @@ public class ChatbotController {
 	}
 
 	// 요청은 post 요청으로 보낸다
-	@PostMapping("/message")
+	@PostMapping(value = "/message", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 	public ResponseEntity<String> handleChat(@RequestBody ChatMessageDTO chatMessageDTO, @CookieValue("sessionID") String sessionId) {
 
 		SseEmitter sseEmitter = activeSessions.get(sessionId);
@@ -63,37 +72,55 @@ public class ChatbotController {
 		}
 		// 연결된 Stream이 없을 경우 세션이 없다고 반응
 
+		// new Thread(() -> {
+		// 	try {
+		// 		String responseText = chatClient.prompt()
+		// 			// .user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
+		// 			.user(chatMessageDTO.getMessage())
+		// 			.call()
+		// 			.content();
+		// 		System.out.println(responseText);
+		// 		// 확인용
+		// 		sseEmitter.send(responseText);
+		// 	}catch (IOException e) {
+		// 		sseEmitter.completeWithError(e);
+		// 	}
+		// }).start();
+		// thread는 생성되고 다 끝나면 자동으로 삭제가 됨
 		new Thread(() -> {
 			try {
-				String responseText = chatClient.prompt()
-					// .user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
+				chatClient.prompt()
 					.user(chatMessageDTO.getMessage())
-					.call()
-					.content();
-				System.out.println(responseText);
-				// 확인용
-				sseEmitter.send(responseText);
-			}catch (IOException e) {
+					.stream()
+					.content()
+					.subscribe(
+						content -> {
+							try {
+								sseEmitter.send(SseEmitter.event().name("message").data(content));
+							} catch (IOException e) {
+								sseEmitter.completeWithError(e);
+							}
+						},
+						error -> sseEmitter.completeWithError(error),
+						() -> {
+							try {
+								sseEmitter.send(SseEmitter.event().name("complete").data("모든 메시지 전송 완료"));
+							} catch (IOException e) {
+								sseEmitter.completeWithError(e);
+							}
+						}
+					);
+			} catch (Exception e) {
 				sseEmitter.completeWithError(e);
 			}
 		}).start();
-		// thread는 생성되고 다 끝나면 자동으로 삭제가 됨
 
 		return ResponseEntity.ok("Message processing started");
 	}
 
-	@GetMapping("")
-	public String mess(){
-		return chatClient.prompt()
-			.user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
-			.call()
-			.content();
-	}
-	// 내일도 확인용
-
-
 	@PostMapping("/end")
-	public void endStream(@RequestParam String sessionId) {
+	// public void endStream(@RequestParam String sessionId) {
+	public void endStream(@CookieValue(value = "sessionID") String sessionId) {
 		SseEmitter sseEmitter = activeSessions.get(sessionId);
 		if (sseEmitter != null) {
 			sseEmitter.complete(); // 스트림 종료
