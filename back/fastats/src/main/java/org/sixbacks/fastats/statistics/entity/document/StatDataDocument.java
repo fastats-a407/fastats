@@ -6,12 +6,14 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
+import org.springframework.data.elasticsearch.annotations.Setting;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 
 @Document(indexName = "stat_data_index")
+@Setting(settingPath = "/elasticsearch/settings/nori-settings.json")
 @AllArgsConstructor
 @Getter
 @ToString
