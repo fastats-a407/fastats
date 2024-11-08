@@ -1,4 +1,4 @@
-package org.sixbacks.fastats.statistics.dto.document;
+package org.sixbacks.fastats.statistics.entity.document;
 
 import java.util.UUID;
 
@@ -15,11 +15,13 @@ import lombok.ToString;
 @AllArgsConstructor
 @Getter
 @ToString
-/* TODO : PK 타입 : String(stat_table 기본키 가져오기(위 방식은 최신화시 전체 데이터에서 최신화된 데이터만 추가 시 유리
-  						/ UUID(위 방식은 최신화시 전체 데이터 삭제 후 다시 전체 데이터 삽입 시 유리할 것으로 판단)) */
-public class StatDataDocument {
+/*
+ * TODO : PK 타입 : String(stat_table 기본키 가져오기(위 방식은 최신화시 전체 데이터에서 최신화된 데이터만 추가 시 유리
+ *						/ UUID(위 방식은 최신화시 전체 데이터 삭제 후 다시 전체 데이터 삽입 시 유리할 것으로 판단))
+ */ public class StatDataDocument {
 	@Id
 	private String tableId;
+	private String sectorName;         // 주제명
 	private String statSurveyName;     // 통계명
 	private String statOrgName;        // 기관명
 	private String statTableName;      // 통계표명

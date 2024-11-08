@@ -2,9 +2,9 @@ package org.sixbacks.fastats.statistics.repository.jdbc;
 
 import java.util.List;
 
-import org.sixbacks.fastats.statistics.dto.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.StatSurvey;
+import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.repository.StatSurveyRepository;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.ListCrudRepository;
@@ -14,6 +14,7 @@ public interface StatSurveyJdbcRepository extends StatSurveyRepository, ListCrud
 
 	@Query("""
 		    SELECT
+		      	sc.description AS sector_name,
 		        ss.name AS stat_survey_name,
 		        so.name AS stat_org_name,
 		        st.name AS stat_table_name,
@@ -38,6 +39,8 @@ public interface StatSurveyJdbcRepository extends StatSurveyRepository, ListCrud
 		        coll_info ci ON st.id = ci.stat_table_id
 		    JOIN
 		        stat_org so ON ss.org_id = so.id
+		  		JOIN
+						sector sc ON ss.sector_id = sc.id
 		""")
 	List<StatDataDocument> findAllStatData();
 
