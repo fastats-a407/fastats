@@ -1,5 +1,6 @@
 package org.sixbacks.fastats.statistics.builder;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -8,8 +9,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.query.Query;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.query_dsl.MultiMatchQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import co.elastic.clients.util.ObjectBuilder;
@@ -20,6 +23,7 @@ public class MultiMatchQueryCustomBuilder {
 
 	private String keyword;
 	private final Map<String, Float> fieldsWithBoostsMap = new HashMap<>();
+	private final List<String> aggregationFields = new ArrayList<>();
 	private TextQueryType queryType;
 	private String analyzer;
 	private Pageable pageable;
@@ -55,6 +59,11 @@ public class MultiMatchQueryCustomBuilder {
 		return this;
 	}
 
+	public MultiMatchQueryCustomBuilder addAggregationField(String field) {
+		this.aggregationFields.add(field);
+		return this;
+	}
+
 	// ObjectBuilder<MultiMatchQuery>를 반환하는 Function 객체 생성
 	private final Function<MultiMatchQuery.Builder, ObjectBuilder<MultiMatchQuery>> multiMatchFunction = m -> m
 		.query(keyword)
@@ -64,11 +73,24 @@ public class MultiMatchQueryCustomBuilder {
 
 	// multiMatchFunction을 그대로 전달하여 Query 빌드
 	public Query build() {
-		return NativeQuery.builder()
+		NativeQueryBuilder queryBuilder = NativeQuery.builder()
 			.withQuery(q -> q
-				.multiMatch(multiMatchFunction))
-			.withPageable(pageable)
-			.build();
+				.multiMatch(multiMatchFunction));
+
+		if (pageable != null) {
+			queryBuilder.withPageable(pageable);
+		}
+
+		// Aggregation을 위한 필드 추가
+		if (!aggregationFields.isEmpty()) {
+			aggregationFields.forEach(aggr -> queryBuilder.withAggregation(aggr,
+				new Aggregation.Builder()
+					.terms(t -> t.field(aggr + ".keyword"))
+					.build()
+			));
+		}
+
+		return queryBuilder.build();
 	}
 
 	private List<String> generateFieldListFrom(Map<String, Float> fieldsWithBoostsMap) {
