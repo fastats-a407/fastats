@@ -9,7 +9,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class CategoryListResponse {
 
-	List<TableByThemeDto> byTheme;
-	List<TableBySurveyDto> bySurvey;
+	List<TableByDto> byTheme;
+	List<TableByDto> bySurvey;
 
 }

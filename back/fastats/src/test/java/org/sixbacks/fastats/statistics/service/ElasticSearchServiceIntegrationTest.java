@@ -156,7 +156,7 @@ public class ElasticSearchServiceIntegrationTest {
 	@DisplayName("ElasticSearch 키워드 기반 Nori 적용 검색 정확도 테스트")
 	public void testSearchQuerySimilarityAndPerformanceWithNori() {
 		// 비교할 키워드와 기대되는 결과 세트 (실제 사이트 기준)
-		String keyword = "인구";
+		String keyword = "일반가구";
 		List<String> expectedResults = List.of("가구주의 성, 연령 및 거처의 종류별 가구(일반가구) - 시군구",
 			"가구주의 성, 연령 및 세대구성별 가구(일반가구) - 시군구",
 			"세대구성 및 가구원수별 가구(일반가구) - 시군구",
@@ -182,14 +182,14 @@ public class ElasticSearchServiceIntegrationTest {
 			.addFieldWithBoost("statTableContent", 1.2f)
 			.addFieldWithBoost("statTableComment", 1.2f)
 			.addPageable(pageable)
-			.withAnalyzer("nori")
+			.withAnalyzer("fastats_nori")
 			.build();
 
 		long startTime = System.currentTimeMillis();
 
 		// 각 쿼리를 실행하여 결과를 얻음
 		Page<StatTableListResponse> result = elasticSearchService.searchByKeyword(keyword, page, size, query);
-
+		System.out.println(result.getContent());
 		long endTime = System.currentTimeMillis();
 		long duration = endTime - startTime;
 		System.out.println("Query Execution Time: " + duration + " ms");
@@ -325,6 +325,7 @@ public class ElasticSearchServiceIntegrationTest {
 			.addFieldWithBoost("statTableName", 1.6f)
 			.addFieldWithBoost("statTableContent", 1.2f)
 			.addFieldWithBoost("statTableComment", 1.2f)
+			.withAnalyzer("fastats_nori")
 			.addAggregationField("sectorName")
 			.addAggregationField("statSurveyName")
 			.queryType(TextQueryType.MostFields)
