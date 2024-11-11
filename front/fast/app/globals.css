@@ -40,3 +40,167 @@ a {
     color-scheme: dark;
   }
 }
+
+.chatbot-window {
+  width: 300px;
+  height: 400px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 10px;
+}
+
+
+/* 헤더 부분 component/header */
+.search-header {
+  display: flex;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.logo-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-left: 20px;
+}
+
+.logo-icon{
+  width: 24px;
+  height: 24px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  width: 90%; /* 전체 너비의 90% */
+  max-width: 600px; /* 최대 너비 */
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 8px;
+  flex: 1;
+}
+
+.search-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px; /* 아이콘과 검색창 간격 */
+  margin-left: 8px;
+}
+.search-form{
+  display: flex;
+  flex: 1;
+  width: 100%;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px;
+  font-size: 16px;
+  border: none; /* 검색창 자체의 테두리 제거 */
+  outline: none; /* 포커스 시 테두리 제거 */
+  text-align: right;
+}
+
+
+/* 연관 검색어 부분 component/relatedKeyword*/
+.search-relate {
+  display: flex;
+  justify-content: center;
+}
+
+.search-relate {
+  display: flex;
+  justify-content: center;
+}
+
+.related-block {
+  width: 80%;
+  max-width: 700px;
+  display: flex;
+  align-items: center; /* 세로 중앙 정렬 */
+  justify-content: space-between;
+  gap: 20px; /* 제목과 검색어 간격 조정 */
+  margin-left: 3%;
+}
+
+.related-bold {
+  font-weight: bold;
+  font-size: 18px;
+  text-align: center; /* 텍스트 중앙 정렬 */
+}
+
+.related-normal {
+  display: flex;
+  justify-content: right;
+  align-items: center; /* 검색어 항목 세로 중앙 정렬 */
+  gap: 10px; /* 검색어 아이템 간 간격 */
+  flex-wrap: wrap; /* 너비가 좁아질 경우 줄바꿈 */
+}
+
+.related-item {
+  padding: 5px 10px;
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-align: center; /* 텍스트 중앙 정렬 */
+}
+
+.result-count{
+  margin-left: 10%;
+  margin-top: 1%;
+}
+
+.result-body{
+  margin: auto;
+  max-width: 80%;
+  height: max-content;
+  margin-top: 1%;
+}
+
+.upper-bar{
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.2%;
+  border-bottom: #0a0a0a;
+  border-width: 1px;
+  border-bottom-style: solid;
+}
+
+.select-stats{
+  font-size: 30px;
+  
+}
+select{
+  min-width: 80px;
+}
+.select-opt{
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stats-body{
+  justify-self: center;
+  margin-top: 1%;
+  display: flex;
+  width: 80%;
+  height: 65vh;
+  background-color: aqua;
+  justify-content: space-between;
+}
+.left{
+  min-width: 100px;
+  width: 20%;
+  background-color: aquamarine;
+}
+
+.right{
+  min-width: 500px;
+  width: 78%;
+  background-color: blue;
+}

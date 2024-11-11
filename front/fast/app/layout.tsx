@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import Chatbot from "@/src/components/Chatbot";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -27,6 +28,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
+        <Chatbot/>
       </body>
     </html>
   );
