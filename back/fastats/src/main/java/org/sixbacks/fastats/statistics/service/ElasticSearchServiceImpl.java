@@ -231,6 +231,9 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
 
+	/*
+		NOTE: 실제 서비스에서 이용되는 카테고리 검색 결과.
+	 */
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
 
@@ -249,6 +252,10 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		return getCategoriesByKeyword(keyword, aggrList, query);
 	}
 
+	/*
+		ElasticSearch 클러스터 전체에서 카테고리 검색 결과를 불러오는 서비스 코드
+		TODO: 쿼리가 사실 aggrList에 의존되는 상태로 생성되므로 추후 로직 수정 필요
+	 */
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword, List<String> aggrList, Query query) {
 
@@ -256,10 +263,13 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Map<String, List<TableByDto>> tableByMap = new HashMap<>();
 
 		if (searchHits.hasAggregations()) {
+
+			// 인터페이스 AggregationsContainer 대신 구현체인 ElasticsearchAggregation 이용해 집계 결과 획득
 			ElasticsearchAggregations aggregationResults = (ElasticsearchAggregations)searchHits.getAggregations();
 			assert aggregationResults != null;
 			aggrList.forEach(aggr -> {
 				ElasticsearchAggregation elasticsearchAggregation = aggregationResults.get(aggr);
+				// 구현된 검색 로직 상 StringTermsAggregate의 형태로 이용해야 함
 				StringTermsAggregate aggregate = elasticsearchAggregation.aggregation().getAggregate().sterms();
 				List<TableByDto> tableByDtoList = bucketToDtoList(aggregate.buckets().array());
 				System.out.println(tableByDtoList);
@@ -271,6 +281,9 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		return tableByMapToCategoryListDto(tableByMap);
 	}
 
+	/*
+		Map에 저장된 String에 따라 CategoryListResponse를 산출하는 메서드 
+	 */
 	private CategoryListResponse tableByMapToCategoryListDto(Map<String, List<TableByDto>> tableByMap) {
 
 		List<TableByDto> byTheme = null;
@@ -296,6 +309,9 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		return new CategoryListResponse(byTheme, bySurvey);
 	}
 
+	/*
+		Aggregation 집계 내 bucket에 들어 있는 데이터를 List<TableDto>로 변형
+	 */
 	private List<TableByDto> bucketToDtoList(List<StringTermsBucket> array) {
 
 		return array.stream()
