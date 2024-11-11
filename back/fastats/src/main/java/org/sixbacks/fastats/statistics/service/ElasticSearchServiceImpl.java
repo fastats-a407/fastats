@@ -15,6 +15,7 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
+import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
@@ -24,6 +25,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
+import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
@@ -33,6 +36,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import lombok.extern.slf4j.Slf4j;
 
@@ -220,6 +224,29 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
+	}
+
+	@Override
+	public CategoryListResponse getCategoriesByKeyword(String keyword) {
+		return null;
+	}
+
+	@Override
+	public CategoryListResponse getCategoriesByKeyword(String keyword, List<String> aggrList, Query query) {
+
+		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+
+		if (searchHits.hasAggregations()) {
+			ElasticsearchAggregations aggregationResults = (ElasticsearchAggregations)searchHits.getAggregations();
+			assert aggregationResults != null;
+			aggrList.forEach(aggr -> {
+				ElasticsearchAggregation aggregation = aggregationResults.get(aggr);
+				Aggregate aggregate = aggregation.aggregation().getAggregate().sterms()._toAggregate();
+				System.out.println(aggregate);
+			});
+		}
+
+		return null;
 	}
 
 	private StatTableListResponse docToResponse(StatDataDocument document) {
