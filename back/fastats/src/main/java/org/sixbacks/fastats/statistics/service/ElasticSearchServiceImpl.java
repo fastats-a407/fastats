@@ -278,7 +278,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
 		// Term Suggester 생성
-		TermSuggestionBuilder termSuggestionBuilder = new TermSuggestionBuilder("title")
+		TermSuggestionBuilder termSuggestionBuilder = new TermSuggestionBuilder("statSurveyName")
 			.text(userInput) // 사용자가 입력한 검색어
 			.size(5) // 추천할 단어의 최대 개수
 			.suggestMode(TermSuggestionBuilder.SuggestMode.ALWAYS) // 항상 제안
