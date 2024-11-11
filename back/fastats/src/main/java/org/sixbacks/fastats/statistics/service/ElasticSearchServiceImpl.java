@@ -1,6 +1,7 @@
 package org.sixbacks.fastats.statistics.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -10,8 +11,14 @@ import java.util.stream.Collectors;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.suggest.Suggest;
+import org.elasticsearch.search.suggest.SuggestBuilder;
+import org.elasticsearch.search.suggest.term.TermSuggestionBuilder;
 import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
@@ -263,5 +270,46 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			document.getCollInfoEndDate(),    // collEndDate
 			document.getStatTableKosisViewLink() // tableLink
 		);
+	}
+
+	@Override
+	public List<String> getSuggestions(String userInput) {
+		SearchRequest searchRequest = new SearchRequest("stat_data_index");
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
+		// Term Suggester 생성
+		TermSuggestionBuilder termSuggestionBuilder = new TermSuggestionBuilder("title")
+			.text(userInput) // 사용자가 입력한 검색어
+			.size(5) // 추천할 단어의 최대 개수
+			.suggestMode(TermSuggestionBuilder.SuggestMode.ALWAYS) // 항상 제안
+			.minWordLength(3) // 제안할 최소 단어 길이 설정
+			.maxEdits(2); // 최대 두 번의 편집으로 제안 생성
+
+		SuggestBuilder suggestBuilder = new SuggestBuilder();
+		suggestBuilder.addSuggestion("term_suggestion", termSuggestionBuilder);
+		searchSourceBuilder.suggest(suggestBuilder);
+		searchRequest.source(searchSourceBuilder);
+
+		List<String> suggestions = new ArrayList<>();
+		try {
+			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+			Suggest suggest = searchResponse.getSuggest();
+
+			if (suggest != null) {
+				Suggest.Suggestion<? extends Suggest.Suggestion.Entry<? extends Suggest.Suggestion.Entry.Option>> termSuggestion =
+					suggest.getSuggestion("term_suggestion");
+
+				// 제안된 단어들을 리스트에 추가
+				for (Suggest.Suggestion.Entry<? extends Suggest.Suggestion.Entry.Option> entry : termSuggestion.getEntries()) {
+					for (Suggest.Suggestion.Entry.Option option : entry) {
+						suggestions.add(option.getText().string());
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return suggestions;
 	}
 }

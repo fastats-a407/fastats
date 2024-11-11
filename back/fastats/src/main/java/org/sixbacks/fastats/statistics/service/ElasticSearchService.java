@@ -23,4 +23,6 @@ public interface ElasticSearchService {
 	CategoryListResponse getCategoriesByKeyword(String keyword);
 
 	CategoryListResponse getCategoriesByKeyword(String keyword, List<String> aggrList, Query query);
+
+	List<String> getSuggestions(String userInput);
 }
