@@ -1,7 +1,9 @@
 package org.sixbacks.fastats.statistics.service;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -15,9 +17,11 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
+import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
+import org.sixbacks.fastats.statistics.dto.response.TableByDto;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -36,7 +40,8 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
+import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import lombok.extern.slf4j.Slf4j;
 
@@ -228,25 +233,75 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
-		return null;
+
+		Query query = new MultiMatchQueryCustomBuilder()
+			.withKeyword(keyword)
+			.addFieldWithBoost("statSurveyName", 1.2f)
+			.addFieldWithBoost("statOrgName", 1.0f)
+			.addFieldWithBoost("statTableName", 1.6f)
+			.addFieldWithBoost("statTableContent", 1.2f)
+			.addFieldWithBoost("statTableComment", 1.2f)
+			.withAnalyzer("fastats_nori")
+			.build();
+
+		List<String> aggrList = List.of("sectorName, statSurveyName");
+
+		return getCategoriesByKeyword(keyword, aggrList, query);
 	}
 
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword, List<String> aggrList, Query query) {
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+		Map<String, List<TableByDto>> tableByMap = new HashMap<>();
 
 		if (searchHits.hasAggregations()) {
 			ElasticsearchAggregations aggregationResults = (ElasticsearchAggregations)searchHits.getAggregations();
 			assert aggregationResults != null;
 			aggrList.forEach(aggr -> {
-				ElasticsearchAggregation aggregation = aggregationResults.get(aggr);
-				Aggregate aggregate = aggregation.aggregation().getAggregate().sterms()._toAggregate();
-				System.out.println(aggregate);
+				ElasticsearchAggregation elasticsearchAggregation = aggregationResults.get(aggr);
+				StringTermsAggregate aggregate = elasticsearchAggregation.aggregation().getAggregate().sterms();
+				List<TableByDto> tableByDtoList = bucketToDtoList(aggregate.buckets().array());
+				System.out.println(tableByDtoList);
+
+				tableByMap.put(aggr, tableByDtoList);
 			});
 		}
 
-		return null;
+		return tableByMapToCategoryListDto(tableByMap);
+	}
+
+	private CategoryListResponse tableByMapToCategoryListDto(Map<String, List<TableByDto>> tableByMap) {
+
+		List<TableByDto> byTheme = null;
+		List<TableByDto> bySurvey = null;
+
+		for (Map.Entry<String, List<TableByDto>> entry : tableByMap.entrySet()) {
+			String key = entry.getKey();
+			List<TableByDto> tableByDtoList = entry.getValue();
+
+			switch (key) {
+				case "sectorName" -> {
+					byTheme = tableByDtoList;
+				}
+				case "statSurveyName" -> {
+					bySurvey = tableByDtoList;
+				}
+				default -> {
+					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+				}
+			}
+		}
+
+		return new CategoryListResponse(byTheme, bySurvey);
+	}
+
+	private List<TableByDto> bucketToDtoList(List<StringTermsBucket> array) {
+
+		return array.stream()
+			.map(bucket -> new TableByDto(bucket.key().stringValue(), (int)bucket.docCount()))
+			.collect(Collectors.toList());
+
 	}
 
 	private StatTableListResponse docToResponse(StatDataDocument document) {
