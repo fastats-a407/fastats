@@ -63,6 +63,8 @@ public class StatisticsController {
 	@GetMapping("/categories")
 	public ResponseEntity<ApiResponse<CategoryListResponse>> getCategoryList(@RequestParam String keyword) {
 
+		ApiResponse<CategoryListResponse> response = ApiResponse.success("카테고리 검색에 성공했습니다.", null);
+
 		return null;
 	}
 
