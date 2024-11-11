@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
 import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
+import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
@@ -27,6 +28,8 @@ import org.springframework.data.elasticsearch.repository.ElasticsearchRepository
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 
 /*
 	TODO: 현재 테스트 환경이 아닌 로컬 개발 환경의 ElasticSearch를 이용하고 있으므로 분리 필요
@@ -306,7 +309,35 @@ public class ElasticSearchServiceIntegrationTest {
 		 */
 		assertTrue("Best similarity score is acceptable", bestSimilarityScore >= 0.8);
 	}
-	
+
+	@Test
+	@DisplayName("ElasticSearch 키워드 기반 카테고리 검색 테스트")
+	public void testGetCategoriesByKeyword() {
+		// 비교할 키워드와 기대되는 결과 세트 (실제 사이트 기준)
+		String keyword = "일반가구";
+		List<String> aggrList = List.of("sectorName", "statSurveyName");
+
+		// MultiMatchQueryCustomBuilder()를 이용한 쿼리 생성
+		Query query = new MultiMatchQueryCustomBuilder()
+			.withKeyword(keyword)
+			.addFieldWithBoost("statSurveyName", 1.2f)
+			.addFieldWithBoost("statOrgName", 1.0f)
+			.addFieldWithBoost("statTableName", 1.6f)
+			.addFieldWithBoost("statTableContent", 1.2f)
+			.addFieldWithBoost("statTableComment", 1.2f)
+			.addAggregationField("sectorName")
+			.addAggregationField("statSurveyName")
+			.queryType(TextQueryType.MostFields)
+			.build();
+
+		long startTime = System.currentTimeMillis();
+
+		// 각 쿼리를 실행하여 결과를 얻음
+		CategoryListResponse categoryListResponse = elasticSearchService.getCategoriesByKeyword(keyword, aggrList,
+			query);
+
+	}
+
 	private List<Map<String, Float>> generateAllBoostCombinations(List<String> fields, List<Float> boostValues) {
 		List<Map<String, Float>> combinations = new ArrayList<>();
 		generateCombinationsRecursive(fields, boostValues, 0, new HashMap<>(), combinations);
