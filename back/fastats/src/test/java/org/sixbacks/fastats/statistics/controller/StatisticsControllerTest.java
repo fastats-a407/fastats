@@ -10,8 +10,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
+import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
+import org.sixbacks.fastats.statistics.dto.response.TableByDto;
 import org.sixbacks.fastats.statistics.service.CollInfoService;
 import org.sixbacks.fastats.statistics.service.ElasticSearchService;
 import org.sixbacks.fastats.statistics.service.SectorService;
@@ -54,7 +56,7 @@ public class StatisticsControllerTest {
 	private CollInfoService collInfoService;
 
 	@Test
-	@DisplayName("타당한 요청에 대해 적절한 ApiResponse 요청 반환")
+	@DisplayName("통계표 검색 결과 불러오기 - 타당한 요청에 대해 적절한 ApiResponse 요청 반환")
 	void getStatTableList_ReturnsValidResponse_WhenRequestIsValid() throws Exception {
 
 		// Given: 모킹에 필요한 결과값 및 searchByKeyword() 결과값
@@ -78,7 +80,7 @@ public class StatisticsControllerTest {
 	}
 
 	@Test
-	@DisplayName("잘못된 요청에 대해 적절한 ApiResponse 요청 반환")
+	@DisplayName("통계표 검색 결과 불러오기 - 잘못된 요청에 대해 적절한 ApiResponse 요청 반환")
 	void getStatTableList_ThrowsCustomExceptioin_WhenRequestIsInValid() throws Exception {
 
 		// Given: 모킹에 필요한 예외 설정
@@ -96,4 +98,53 @@ public class StatisticsControllerTest {
 		verify(elasticSearchService).searchByKeyword("test", 500, 10);
 	}
 
+	@Test
+	@DisplayName("카테고리 검색 결과 불러오기 - 타당한 요청에 대해 적절한 ApiResponse 요청 반환")
+	void getCategoriesByKeyword_ReturnsValidResponse_WhenRequestIsValid() throws Exception {
+
+		// Given: 모킹에 필요한 결과값 및 getCate() 결과값
+
+		String keyword = "인구";
+
+		TableByDto byThemeDto = new TableByDto("인구", 3);
+		TableByDto bySurveyDto = new TableByDto("인구총조사", 5);
+		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto));
+
+		when(elasticSearchService.getCategoriesByKeyword(keyword)).thenReturn(mockContent);
+
+		// When & Then: MockMvc로 요청 보내기 및 결과 검증
+		mockMvc.perform(get("/api/v1/stats/categories?keyword=" + keyword)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.message").value("카테고리 검색에 성공했습니다."))
+			.andExpect(jsonPath("$.data").exists());
+
+		// 서비스 호출 확인
+		verify(elasticSearchService).getCategoriesByKeyword(keyword);
+	}
+
+	@Test
+	@DisplayName("카테고리 검색 결과 불러오기 - 잘못된 요청에 대해 적절한 ApiResponse 요청 반환")
+	void getCategoriesByKeyword_ThrowsCustomExceptioin_WhenRequestIsInValid() throws Exception {
+
+		// Given: 모킹에 필요한 결과값 및 getCate() 결과값
+
+		String keyword = "인구";
+
+		TableByDto byThemeDto = new TableByDto("인구", 3);
+		TableByDto bySurveyDto = new TableByDto("인구총조사", 5);
+		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto));
+
+		when(elasticSearchService.getCategoriesByKeyword(keyword)).thenReturn(mockContent);
+
+		// When & Then: MockMvc로 요청 보내기 및 결과 검증
+		mockMvc.perform(get("/api/v1/stats/categories?keyword=" + keyword)
+				.contentType(MediaType.APPLICATION_JSON))
+			.andExpect(jsonPath("$.code").value(ErrorCode.STAT_ILL_REQUEST.getCode())) // 예외 발생 시 예상되는 상태 코드
+			.andExpect(jsonPath("$.message").value(ErrorCode.STAT_ILL_REQUEST.getMessage())) // 에러 메시지 확인
+			.andExpect(jsonPath("$.data").doesNotExist());
+
+		// 서비스 호출 확인
+		verify(elasticSearchService).getCategoriesByKeyword(keyword);
+	}
 }
