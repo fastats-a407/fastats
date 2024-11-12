@@ -12,14 +12,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import lombok.extern.slf4j.Slf4j;
 
 // 챗봇의 메시지와 SSE를 조정하는 컨트롤러
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/chatbot")
 public class ChatbotController {
@@ -32,12 +35,12 @@ public class ChatbotController {
 		this.chatClient = chatClient.build();
 	}
 
-	@PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-	public SseEmitter startStream(@CookieValue(value = "sessionID") String sessionId) {
+	// @PostMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	@GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+	public SseEmitter startStream(@CookieValue(value = "sessionID" , required = false) String sessionId) {
 	// public SseEmitter startStream(@RequestBody String sessionId) {
-	// 	System.out.println(sessionId);
 		if (sessionId == null) {
-			System.out.println("SessionID 쿠키가 없습니다.");
+			log.error("sessionID is null");
 			return null; // 오류 처리를 위한 코드
 		}
 
@@ -51,7 +54,8 @@ public class ChatbotController {
 
 		// 연결되었음을 알리는 메시지 전송
 		try {
-			sseEmitter.send("연결이 되었습니다.");
+			sseEmitter.send(SseEmitter.event().name("init").data("연결이 설정되었습니다."));
+			// log.error(sessionId + " 연결");
 		} catch (IOException e) {
 			sseEmitter.completeWithError(e);
 		}
@@ -70,23 +74,6 @@ public class ChatbotController {
 		if (sseEmitter == null) {
 			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Session not found or closed");
 		}
-		// 연결된 Stream이 없을 경우 세션이 없다고 반응
-
-		// new Thread(() -> {
-		// 	try {
-		// 		String responseText = chatClient.prompt()
-		// 			// .user("날씨에 관련한 통계를 검색할 수 있는 한국어 검색어만 4개를 list형식으로 줘")
-		// 			.user(chatMessageDTO.getMessage())
-		// 			.call()
-		// 			.content();
-		// 		System.out.println(responseText);
-		// 		// 확인용
-		// 		sseEmitter.send(responseText);
-		// 	}catch (IOException e) {
-		// 		sseEmitter.completeWithError(e);
-		// 	}
-		// }).start();
-		// thread는 생성되고 다 끝나면 자동으로 삭제가 됨
 		new Thread(() -> {
 			try {
 				chatClient.prompt()
@@ -118,11 +105,13 @@ public class ChatbotController {
 		return ResponseEntity.ok("Message processing started");
 	}
 
-	@PostMapping("/end")
+	// @PostMapping("/end")
+	@GetMapping("/end")
 	// public void endStream(@RequestParam String sessionId) {
 	public void endStream(@CookieValue(value = "sessionID") String sessionId) {
 		SseEmitter sseEmitter = activeSessions.get(sessionId);
 		if (sseEmitter != null) {
+			// log.error("끝");
 			sseEmitter.complete(); // 스트림 종료
 			activeSessions.remove(sessionId);
 		}
