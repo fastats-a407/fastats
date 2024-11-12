@@ -1,0 +1,27 @@
+{
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "nori_analyzer": {
+          "type": "custom",
+          "tokenizer": "nori_tokenizer"
+        }
+      },
+      "tokenizer": {
+        "nori_tokenizer": {
+          "type": "nori_tokenizer",
+          "decompound_mode": "mixed"
+        }
+      }
+    }
+  },
+  "mappings": {
+    "properties": {
+      "statSurveyName": { "type": "text", "analyzer": "nori_analyzer" },
+      "statOrgName": { "type": "text", "analyzer": "nori_analyzer" },
+      "statTableName": { "type": "text", "analyzer": "nori_analyzer" },
+      "statTableContent": { "type": "text", "analyzer": "nori_analyzer" },
+      "statTableComment": { "type": "text", "analyzer": "nori_analyzer" }
+    }
+  }
+}
