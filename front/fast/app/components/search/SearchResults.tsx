@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { SuggestionKeyword } from '../lib/type'
+import { SuggestionKeyword } from '../../lib/type'
 
 
 interface SearchResultsProps {

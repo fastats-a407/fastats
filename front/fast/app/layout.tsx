@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import Chatbot from "@/src/components/Chatbot";
+import Chatbot from "@/app/components/Chatbot";
 import "./globals.css";
 
 const geistSans = localFont({

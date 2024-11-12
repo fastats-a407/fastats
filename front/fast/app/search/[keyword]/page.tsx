@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import Header from "@/src/components/Header";
-import RelatedKeywords from "@/src/components/RelatedKeywords";
+import Header from "@/app/components/Header";
+import RelatedKeywords from "@/app/components/RelatedKeywords";
 
 export default function KeywordPage() {
   const params = useParams();
