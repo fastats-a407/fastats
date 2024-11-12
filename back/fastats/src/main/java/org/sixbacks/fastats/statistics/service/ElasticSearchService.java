@@ -16,6 +16,8 @@ public interface ElasticSearchService {
 
 	void saveDataWithBulkThroughMultiThreads();
 
+	void saveDataNgramWithBulkThroughMultiThreads();
+
 	Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size);
 
 	Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query);
