@@ -3,9 +3,8 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import '@picocss/pico'
 import React, { useEffect, useState } from 'react';
-import Search from './components/Search'
+import Search from './components/search/Search'
 import axios from "axios";
-
 
 export default function Home() {
   const [query, setQuery] = useState('');

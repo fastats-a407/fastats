@@ -21,3 +21,10 @@ export interface SuggestionKeyword {
     id: string;
     keyword: string;
 }
+
+export interface ApiResponse{
+    code : number;
+    message : string;
+    data : any;
+}
+
