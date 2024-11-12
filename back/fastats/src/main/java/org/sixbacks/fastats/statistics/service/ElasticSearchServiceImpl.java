@@ -29,6 +29,7 @@ import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
+import org.sixbacks.fastats.statistics.repository.jdbc.ElasticSearchRepository;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
@@ -41,7 +42,6 @@ import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.query.Query;
-import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,14 +56,14 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	private final StatSurveyJdbcRepository statSurveyJdbcRepository;
 	private final RestHighLevelClient restHighLevelClient;
-	private final ElasticsearchRepository elasticsearchRepository;
+	private final ElasticSearchRepository elasticsearchRepository;
 	private final ObjectMapper objectMapper;
 	private final ElasticsearchOperations elasticsearchOperations;
 
 	public ElasticSearchServiceImpl(
 		@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
 		@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
-		@Qualifier("elasticSearchRepository") ElasticsearchRepository elasticsearchRepository,
+		@Qualifier("elasticSearchRepository") ElasticSearchRepository elasticsearchRepository,
 		@Qualifier("objectMapper") ObjectMapper objectMapper, ElasticsearchOperations elasticsearchOperations) {
 		this.statSurveyJdbcRepository = statSurveyJdbcRepository;
 		this.restHighLevelClient = restHighLevelClient;
