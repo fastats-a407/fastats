@@ -3,8 +3,8 @@ import { FocusEventHandler, MouseEventHandler, useEffect, useState } from 'react
 import SearchBox from './SearchBox';
 import SearchResults from './SearchResults';
 import { SuggestionKeyword } from '@/app/lib/type'
-import {fetchAutoComplete} from '../lib/Search'
-import { useDebouncedState } from '../lib/useDebouncedState';
+import {fetchAutoComplete} from '../../lib/Search'
+import { useDebouncedState } from '../../lib/useDebouncedState';
 
 export default function Search() {
     const [query, setQuery] = useState<string>('');

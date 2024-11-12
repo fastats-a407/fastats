@@ -3,7 +3,7 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import '@picocss/pico'
 import React, { useState } from 'react';
-import Search from './components/Search'
+import Search from './components/search/Search'
 
 export default function Home() {
   const [query, setQuery] = useState('');
