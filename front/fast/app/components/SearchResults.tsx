@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import { SuggestionKeyword } from './type'
+import { SuggestionKeyword } from '../lib/type'
 
 
 interface SearchResultsProps {
@@ -22,11 +22,6 @@ export default function SearchResults({ statistics, searching, hidden, onMouseOv
             ) : (
                 <>
                     <ul>
-                        {/* {statistics.map(({ id, keyword }) => (
-                            <li key={id} onMouseLeave={onMouseLeave} onMouseOver={onMouseOver} onClick={onClick}>
-                                {keyword}
-                            </li>
-                        ))} */}
                         {statistics.map(({ id, keyword }) => (
                             <li key={id} onMouseLeave={onMouseLeave} onMouseOver={onMouseOver} onClick={onClick}>
                                 {keyword}
