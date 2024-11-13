@@ -4,12 +4,15 @@ import java.util.List;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
 @AllArgsConstructor
-public class CategoryListResponse {
+@ToString
+public class StatTablePageResponse {
 
-	List<TableByDto> byTheme;
-	List<TableByDto> bySurvey;
+	private List<StatTableListResponse> content;
+	private int size;
+	private int totalPages;
 
 }
