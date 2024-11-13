@@ -31,29 +31,25 @@ public class SearchService {
 	}
 
 	public List<SearchAutoCompleteResponseDto> searchAutoComplete(String query) {
-		// JSON 요청 본문 생성
+
 		String requestJson = String.format("{\n" +
-				"  \"size\": 0,\n" +
+				"  \"size\": 5,\n" +
 				"  \"query\": {\n" +
-				"    \"multi_match\": {\n" +
-				"      \"query\": \"%s\",\n" +
-				"      \"fields\": [\"statTableName\", \"statSurveyName\", \"statOrgName\"],\n" +
-				"      \"type\": \"phrase_prefix\"\n" +
+				"    \"bool\": {\n" +
+				"      \"should\": [\n" +
+				"        { \"match_phrase\": { \"statTableName\": \"%s\" }},\n" +
+				"        { \"match_phrase\": { \"statSurveyName\": \"%s\" }},\n" +
+				"        { \"match_phrase\": { \"statOrgName\": \"%s\" }}\n" +
+				"      ],\n" +
+				"      \"minimum_should_match\": 1\n" +
 				"    }\n" +
 				"  },\n" +
-				"  \"aggs\": {\n" +
-				"    \"statTableName_suggestions\": {\n" +
-				"      \"terms\": { \"field\": \"statTableName.keyword\", \"size\": 10 }\n" +
-				"    },\n" +
-				"    \"statSurveyName_suggestions\": {\n" +
-				"      \"terms\": { \"field\": \"statSurveyName.keyword\", \"size\": 10 }\n" +
-				"    },\n" +
-				"    \"statOrgName_suggestions\": {\n" +
-				"      \"terms\": { \"field\": \"statOrgName.keyword\", \"size\": 10 }\n" +
-				"    }\n" +
+				"  \"aggs\": {\n" +  // 필드별 집계를 추가
+				"    \"statTableName_suggestions\": { \"terms\": { \"field\": \"statTableName.keyword\", \"size\": 5 }},\n" +
+				"    \"statSurveyName_suggestions\": { \"terms\": { \"field\": \"statSurveyName.keyword\", \"size\": 5 }},\n" +
+				"    \"statOrgName_suggestions\": { \"terms\": { \"field\": \"statOrgName.keyword\", \"size\": 5 }}\n" +
 				"  }\n" +
-				"}", query);
-
+				"}", query, query, query);
 		// HTTP 요청 헤더 설정
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
@@ -68,10 +64,12 @@ public class SearchService {
 		return parseResponse(response);
 	}
 
+private List<SearchAutoCompleteResponseDto> parseResponse(String response) {
+	List<SearchAutoCompleteResponseDto> results = new ArrayList<>();
+	JSONObject jsonResponse = new JSONObject(response);
 
-	private List<SearchAutoCompleteResponseDto> parseResponse(String response) {
-		List<SearchAutoCompleteResponseDto> results = new ArrayList<>();
-		JSONObject jsonResponse = new JSONObject(response);
+	// aggregations가 있는지 확인
+	if (jsonResponse.has("aggregations")) {
 		JSONObject aggregations = jsonResponse.getJSONObject("aggregations");
 
 		// 각 필드에 대한 결과를 가져와 DTO로 변환하여 리스트에 추가
@@ -96,6 +94,10 @@ public class SearchService {
 				results.add(SearchAutoCompleteResponseDto.builder().keyword(suggestion).build());
 			}
 		}
-		return results;
 	}
+
+	// 상위 5개 항목만 반환하도록 자르기
+	return results.size() > 5 ? results.subList(0, 5) : results;
+}
+
 }
