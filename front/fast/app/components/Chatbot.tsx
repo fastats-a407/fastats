@@ -80,7 +80,7 @@ export default function Chatbot() {
       // }
       try {
         // 메시지 전송 수행
-        const response = await fetch("/message", {
+        const response = await fetch(`${apiUrl}/chatbot/message`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -108,7 +108,7 @@ export default function Chatbot() {
     //   console.error("Failed to end stream:", error);
     // }
     try {
-      const response = await fetch("/end", {
+      const response = await fetch(`${apiUrl}/chatbot/end`, {
         method: "GET",
         credentials: "include", // 쿠키 자동 포함 설정
       });
