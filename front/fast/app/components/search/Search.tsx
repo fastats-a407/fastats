@@ -3,14 +3,14 @@ import { FocusEventHandler, MouseEventHandler, useEffect, useState } from 'react
 import SearchBox from './SearchBox';
 import SearchResults from './SearchResults';
 import { SuggestionKeyword } from '@/app/lib/type'
-import {fetchAutoComplete} from '../../lib/Search'
+import { fetchAutoComplete, fetchStats } from '../../lib/Search'
 import { useDebouncedState } from '../../lib/useDebouncedState';
 import { useRouter } from 'next/navigation';
 
 
 export default function Search() {
     const [query, setQuery] = useState<string>('');
-    const debouncedQuery = useDebouncedState(query, 1000)
+    const debouncedQuery = useDebouncedState(query, 100)
     const [statistics, setStatistics] = useState<SuggestionKeyword[]>([]);
     const [searching, setSearching] = useState<boolean>(false);
     const [isHidden, setIsHidden] = useState<boolean>(true);
@@ -18,8 +18,13 @@ export default function Search() {
     const router = useRouter();
 
     useEffect(() => {
+        setSearching(true)
+    }, [query])
+
+
+    useEffect(() => {
         setSearching(true);
-        fetchAutoComplete(debouncedQuery).then(statistics =>{
+        fetchAutoComplete(debouncedQuery).then(statistics => {
             setStatistics(statistics);
             setSearching(false);
         })
@@ -47,7 +52,7 @@ export default function Search() {
 
         const selectedKeyword = statistics.find(stat => stat.keyword === textContent);
         if (selectedKeyword) {
-            router.push(`/search/${selectedKeyword.keyword}`);
+            router.push(`/search/${encodeURIComponent(selectedKeyword.keyword)}`);
         }
     };
     const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -57,7 +62,7 @@ export default function Search() {
     };
     return (
         <>
-            <SearchBox value={query} onFocus={onFocusIn} onBlur={onFocusOut} onChange={(e) => setQuery(e.target.value)} onSubmit={handleSearchSubmit}/>
+            <SearchBox value={query} onFocus={onFocusIn} onBlur={onFocusOut} onChange={(e) => setQuery(e.target.value)} onSubmit={handleSearchSubmit} />
             <SearchResults onClick={onAddResultClick} onMouseLeave={onMouseLeave} onMouseOver={onMouseOver} hidden={isHidden} statistics={statistics} searching={searching} />
         </>
     );
