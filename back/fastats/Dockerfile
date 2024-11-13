@@ -16,6 +16,9 @@ RUN ./gradlew clean bootJar --no-daemon
 FROM openjdk:17-jdk-slim
 WORKDIR /app
 
+COPY ./elasticsearch-cert.crt /app/config/elasticsearch-cert.crt
+
+RUN keytool -import -noprompt -alias elasticsearch-cert -file /app/config/elasticsearch-cert.crt -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
 # 빌드 결과물 복사
 COPY --from=build /app/build/libs/fastats-0.0.1-SNAPSHOT.jar /app/fastats.jar
 # # 설정 파일을 복사
