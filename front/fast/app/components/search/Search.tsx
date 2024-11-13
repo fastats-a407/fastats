@@ -5,6 +5,8 @@ import SearchResults from './SearchResults';
 import { SuggestionKeyword } from '@/app/lib/type'
 import {fetchAutoComplete} from '../../lib/Search'
 import { useDebouncedState } from '../../lib/useDebouncedState';
+import { useRouter } from 'next/navigation';
+
 
 export default function Search() {
     const [query, setQuery] = useState<string>('');
@@ -13,6 +15,8 @@ export default function Search() {
     const [searching, setSearching] = useState<boolean>(false);
     const [isHidden, setIsHidden] = useState<boolean>(true);
     const [liOver, setLiOver] = useState<boolean>(false);
+    const router = useRouter();
+
     useEffect(() => {
         setSearching(true);
         fetchAutoComplete(debouncedQuery).then(statistics =>{
@@ -40,10 +44,20 @@ export default function Search() {
         const { textContent } = e.currentTarget;
         setQuery(textContent || "");
         setIsHidden(true);
+
+        const selectedKeyword = statistics.find(stat => stat.keyword === textContent);
+        if (selectedKeyword) {
+            router.push(`/search/${selectedKeyword.keyword}`);
+        }
+    };
+    const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        console.log("검색을 시작합니다:", query);
+        router.push(`/search/${query}`);
     };
     return (
         <>
-            <SearchBox value={query} onFocus={onFocusIn} onBlur={onFocusOut} onChange={(e) => setQuery(e.target.value)} />
+            <SearchBox value={query} onFocus={onFocusIn} onBlur={onFocusOut} onChange={(e) => setQuery(e.target.value)} onSubmit={handleSearchSubmit}/>
             <SearchResults onClick={onAddResultClick} onMouseLeave={onMouseLeave} onMouseOver={onMouseOver} hidden={isHidden} statistics={statistics} searching={searching} />
         </>
     );
