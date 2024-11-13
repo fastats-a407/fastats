@@ -1,6 +1,9 @@
 package org.sixbacks.fastats.statistics.service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +12,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
+import co.elastic.clients.elasticsearch.indices.ExistsRequest;
+import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -24,8 +33,11 @@ import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.dto.response.TableByDto;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
+import org.sixbacks.fastats.statistics.entity.document.StatNgramDataDocument;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -34,7 +46,9 @@ import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregatio
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Service;
@@ -55,18 +69,21 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	private final ElasticsearchRepository elasticsearchRepository;
 	private final ObjectMapper objectMapper;
 	private final ElasticsearchOperations elasticsearchOperations;
+	private final ResourceLoader resourceLoader;
 
 	public ElasticSearchServiceImpl(
-		@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
-		@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
-		@Qualifier("elasticSearchRepository") ElasticsearchRepository elasticsearchRepository,
-		@Qualifier("objectMapper") ObjectMapper objectMapper,
-		ElasticsearchOperations elasticsearchOperations) {
+			@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
+			@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
+			@Qualifier("elasticSearchRepository") ElasticsearchRepository elasticsearchRepository,
+			@Qualifier("objectMapper") ObjectMapper objectMapper,
+			ElasticsearchOperations elasticsearchOperations,
+			ResourceLoader resourceloader) {
 		this.statSurveyJdbcRepository = statSurveyJdbcRepository;
 		this.restHighLevelClient = restHighLevelClient;
 		this.elasticsearchRepository = elasticsearchRepository;
 		this.objectMapper = objectMapper;
 		this.elasticsearchOperations = elasticsearchOperations;
+		this.resourceLoader = resourceloader;
 	}
 
 	@Override
@@ -95,6 +112,15 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		}
 	}
 
+	private String serializeDocument(StatNgramDataDocument document) {
+		try {
+			return objectMapper.writeValueAsString(document);
+		} catch (Exception e) {
+			log.error("문서 ID {}를 직렬화하는 중 오류 발생: {}", document.getTableId(), e.getMessage());
+			return null;
+		}
+	}
+
 	// 2. Bulk 요청 빌드
 	private BulkRequest buildBulkRequest(List<StatDataDocument> documents) {
 		BulkRequest bulkRequest = new BulkRequest();
@@ -103,8 +129,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			String serializedDoc = serializeDocument(document);
 			if (serializedDoc != null) {
 				IndexRequest indexRequest = new IndexRequest("stat_data_index")
-					.id(document.getTableId())
-					.source(serializedDoc, XContentType.JSON);
+						.id(document.getTableId())
+						.source(serializedDoc, XContentType.JSON);
 				bulkRequest.add(indexRequest);
 			}
 		}
@@ -140,8 +166,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					String serializedDoc = serializeDocument(document);
 					if (serializedDoc != null) {
 						IndexRequest indexRequest = new IndexRequest("stat_data_index")
-							.id(document.getTableId())
-							.source(serializedDoc, XContentType.JSON);
+								.id(document.getTableId())
+								.source(serializedDoc, XContentType.JSON);
 						batchRequest.add(indexRequest);
 					}
 				}
@@ -166,6 +192,59 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	}
 
+	@Override
+// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
+	public void saveDataNgramWithBulkThroughMultiThreads() {
+		// 인덱스 이름과 설정 파일 경로
+		String indexName = "ngram_index";
+		String settingsPath = "/elasticsearch/settings/ngram-settings.json";
+
+		// ngram 애널라이저가 적용된 인덱스를 먼저 생성
+		createNgramIndexIfNeeded(indexName, settingsPath);
+
+		// 데이터 가져오기
+		List<StatDataDocument> documents = statSurveyJdbcRepository.findAllStatData();
+		int batchSize = 500;
+		int numThreads = 4; // 병렬로 실행할 스레드 수
+		ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+
+		for (int i = 0; i < documents.size(); i += batchSize) {
+			final List<StatDataDocument> batch = documents.subList(i, Math.min(i + batchSize, documents.size()));
+			executorService.submit(() -> {
+				BulkRequest batchRequest = new BulkRequest();
+				for (StatDataDocument document : batch) {
+					String serializedDoc = serializeDocument(document);
+					if (serializedDoc != null) {
+						IndexRequest indexRequest = new IndexRequest(indexName)
+								.id(document.getTableId())
+								.source(serializedDoc, XContentType.JSON);
+						batchRequest.add(indexRequest);
+					}
+				}
+				try {
+					BulkResponse bulkResponse = restHighLevelClient.bulk(batchRequest, RequestOptions.DEFAULT);
+					if (bulkResponse.hasFailures()) {
+						log.error("Bulk 요청 처리 중 오류 발생: {}", bulkResponse.buildFailureMessage());
+					} else {
+						log.info("Bulk 요청 성공적으로 완료!");
+					}
+				} catch (IOException e) {
+					log.error("Bulk 요청 전송 중 IOException 발생: {}", e.getMessage());
+				}
+			});
+		}
+		executorService.shutdown();
+		try {
+			executorService.awaitTermination(1, TimeUnit.HOURS);
+		} catch (InterruptedException e) {
+			log.error("멀티 스레딩 Bulk 작업 중 인터럽트 발생: {}", e.getMessage());
+		}
+	}
+
+	/*
+		NOTE:
+		여러 필드에 대해서 MultiMatch를 통해 정확도(relevancy) 기준으로 검색할 예정이므로,
+		ElasticSearchRepository 대신 elasticSearchOperations를 이용해 복잡성 해결
 	/**
 	 * @deprecated {@link #searchByKeyword(SearchCriteria)} 를 이용.
 	 */
@@ -176,18 +255,18 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size);
 
 		Query query = NativeQuery.builder()
-			.withQuery(q -> q
-				.multiMatch(m -> m
-					.query(keyword)
-					.fields("statSurveyName", "statOrgName",
-						"statTableName", "statTableContent",
-						"statTableComment")
-					// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
-					.type(TextQueryType.BestFields)
+				.withQuery(q -> q
+						.multiMatch(m -> m
+								.query(keyword)
+								.fields("statSurveyName", "statOrgName",
+										"statTableName", "statTableContent",
+										"statTableComment")
+								// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
+								.type(TextQueryType.BestFields)
+						)
 				)
-			)
-			.withPageable(pageable)
-			.build();
+				.withPageable(pageable)
+				.build();
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 
@@ -200,8 +279,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-			.map(hit -> docToResponse(hit.getContent()))
-			.collect(Collectors.toList());
+				.map(hit -> docToResponse(hit.getContent()))
+				.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -225,8 +304,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-			.map(hit -> docToResponse(hit.getContent()))
-			.collect(Collectors.toList());
+				.map(hit -> docToResponse(hit.getContent()))
+				.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -243,32 +322,32 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size);
 
 		Query query = NativeQuery.builder()
-			.withQuery(q -> q
-				.bool(b -> {
-					// ctg가 null이 아닌 경우에만 term 조건 추가
-					if (ctg != null && ctgContent != null) {
-						b.filter(m -> m
-							.term(t -> t
-								.field(ctg)
-								.value(ctgContent) // 정확히 일치해야 하는 필드
-							)
-						);
-					}
-					// 항상 적용되는 multiMatch 조건 추가
-					b.must(m -> m
-						.multiMatch(multi -> multi
-							.query(keyword)
-							.fields("statSurveyName", "statTableName",
-								"statTableContent", "statTableComment")
-							.type(TextQueryType.BestFields)
-							.analyzer("fastats_nori")
-						)
-					);
-					return b;
-				})
-			)
-			.withPageable(pageable)
-			.build();
+				.withQuery(q -> q
+						.bool(b -> {
+							// ctg가 null이 아닌 경우에만 term 조건 추가
+							if (ctg != null && ctgContent != null) {
+								b.filter(m -> m
+										.term(t -> t
+												.field(ctg)
+												.value(ctgContent) // 정확히 일치해야 하는 필드
+										)
+								);
+							}
+							// 항상 적용되는 multiMatch 조건 추가
+							b.must(m -> m
+									.multiMatch(multi -> multi
+											.query(keyword)
+											.fields("statSurveyName", "statTableName",
+													"statTableContent", "statTableComment")
+											.type(TextQueryType.BestFields)
+											.analyzer("fastats_nori")
+									)
+							);
+							return b;
+						})
+				)
+				.withPageable(pageable)
+				.build();
 
 		return searchByKeyword(searchCriteria, query);
 	}
@@ -292,8 +371,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-			.map(hit -> docToResponse(hit.getContent()))
-			.collect(Collectors.toList());
+				.map(hit -> docToResponse(hit.getContent()))
+				.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -305,14 +384,14 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
 
 		Query query = new MultiMatchQueryCustomBuilder()
-			.withKeyword(keyword)
-			.addFieldWithBoost("statSurveyName", 1.2f)
-			.addFieldWithBoost("statOrgName", 1.0f)
-			.addFieldWithBoost("statTableName", 1.6f)
-			.addFieldWithBoost("statTableContent", 1.2f)
-			.addFieldWithBoost("statTableComment", 1.2f)
-			.withAnalyzer("fastats_nori")
-			.build();
+				.withKeyword(keyword)
+				.addFieldWithBoost("statSurveyName", 1.2f)
+				.addFieldWithBoost("statOrgName", 1.0f)
+				.addFieldWithBoost("statTableName", 1.6f)
+				.addFieldWithBoost("statTableContent", 1.2f)
+				.addFieldWithBoost("statTableComment", 1.2f)
+				.withAnalyzer("fastats_nori")
+				.build();
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
 
@@ -349,7 +428,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	}
 
 	/*
-		Map에 저장된 String에 따라 CategoryListResponse를 산출하는 메서드 
+		Map에 저장된 String에 따라 CategoryListResponse를 산출하는 메서드
 	 */
 	private CategoryListResponse tableByMapToCategoryListDto(Map<String, List<TableByDto>> tableByMap) {
 
@@ -382,8 +461,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	private List<TableByDto> bucketToDtoList(List<StringTermsBucket> array) {
 
 		return array.stream()
-			.map(bucket -> new TableByDto(bucket.key().stringValue(), (int)bucket.docCount()))
-			.collect(Collectors.toList());
+				.map(bucket -> new TableByDto(bucket.key().stringValue(), (int)bucket.docCount()))
+				.collect(Collectors.toList());
 
 	}
 
@@ -391,15 +470,44 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// Embedded와 비슷하게 필요한 StatSurveyInfoDto 생성
 		StatSurveyInfoDto statSurveyInfo = new StatSurveyInfoDto(document.getStatOrgName(),
-			document.getStatSurveyName(),
-			null);
+				document.getStatSurveyName(),
+				null);
 
 		return new StatTableListResponse(
-			document.getStatTableName(),  // title
-			statSurveyInfo,              // statSurveyInfo
-			document.getCollInfoStartDate(),  // collStartDate
-			document.getCollInfoEndDate(),    // collEndDate
-			document.getStatTableKosisViewLink() // tableLink
+				document.getStatTableName(),  // title
+				statSurveyInfo,              // statSurveyInfo
+				document.getCollInfoStartDate(),  // collStartDate
+				document.getCollInfoEndDate(),    // collEndDate
+				document.getStatTableKosisViewLink() // tableLink
 		);
 	}
+
+
+	// ngram 애널라이저가 적용된 인덱스를 생성하는 메서드
+	private void createNgramIndexIfNeeded(String indexName, String settingsPath) {
+		try {
+			// 인덱스 존재 여부 확인
+			boolean indexExists = elasticsearchOperations.indexOps(IndexCoordinates.of(indexName)).exists();
+
+			if (!indexExists) {
+				// 설정 파일 로드
+				Resource resource = resourceLoader.getResource("classpath:" + settingsPath);
+				String settingsJson = new String(Files.readAllBytes(resource.getFile().toPath()), StandardCharsets.UTF_8);
+
+				// JSON 파싱
+				Map<String, Object> settings = objectMapper.readValue(settingsJson, Map.class);
+
+				// 인덱스 생성
+				IndexOperations indexOperations = elasticsearchOperations.indexOps(IndexCoordinates.of(indexName));
+				indexOperations.create(settings);
+				log.info("ngram 인덱스 '{}'가 성공적으로 생성되었습니다.", indexName);
+			} else {
+				log.info("인덱스 '{}'가 이미 존재합니다.", indexName);
+			}
+		} catch (IOException e) {
+			log.error("ngram 인덱스 생성 중 오류 발생: {}", e.getMessage());
+		}
+	}
 }
+
+
