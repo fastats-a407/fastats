@@ -14,10 +14,10 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/initialize")
 public class CookieController {
 
-	@GetMapping("/initialize")
+	@GetMapping("")
 	public ResponseEntity<String> initialize(HttpServletResponse response,
 		@CookieValue(value = "sessionID", required = false) String sessionId) {
 		// sessionID가 없는 경우 새로 설정

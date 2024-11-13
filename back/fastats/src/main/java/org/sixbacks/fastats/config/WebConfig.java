@@ -14,7 +14,7 @@ public class WebConfig {
 			@Override
 			public void addCorsMappings(CorsRegistry registry) {
 				registry.addMapping("/**")
-					.allowedOrigins("http://localhost:3000") // 클라이언트 도메인 지정
+					.allowedOrigins("http://localhost:3000", "https://k11a407.p.ssafy.io") // 클라이언트 도메인 지정
 					.allowCredentials(true) // 쿠키 포함 허용
 					.allowedMethods("GET", "POST", "PUT", "DELETE")
 					.allowedHeaders("*");
