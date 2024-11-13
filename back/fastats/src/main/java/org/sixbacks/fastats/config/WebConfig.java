@@ -16,7 +16,7 @@ public class WebConfig {
 				registry.addMapping("/**")
 					.allowedOrigins("http://localhost:3000", "https://k11a407.p.ssafy.io") // 클라이언트 도메인 지정
 					.allowCredentials(true) // 쿠키 포함 허용
-					.allowedMethods("GET", "POST", "PUT", "DELETE")
+					.allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
 					.allowedHeaders("*");
 			}
 		};
