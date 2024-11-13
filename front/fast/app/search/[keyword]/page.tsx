@@ -40,7 +40,7 @@ export default function KeywordPage() {
       </div>
       <div className="stats-body">
         <div className="left">
-
+          
         </div>
         <div className="right">
 
