@@ -6,6 +6,7 @@ import java.util.List;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.sixbacks.fastats.search.dto.SearchAutoCompleteResponseDto;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -16,7 +17,9 @@ import org.springframework.web.client.RestTemplate;
 public class SearchService {
 
 	private final RestTemplate restTemplate = new RestTemplate();
-	private final String ELASTICSEARCH_URL = "http://localhost:9200/ngram_index/_search";
+
+	@Value("${spring.elasticsearch.uris}")
+	private String ELASTICSEARCH_URL;
 
 	public List<SearchAutoCompleteResponseDto> searchAutoComplete(String query) {
 		// JSON 요청 본문 생성
@@ -50,7 +53,7 @@ public class SearchService {
 		HttpEntity<String> requestEntity = new HttpEntity<>(requestJson, headers);
 
 		// Elasticsearch에 POST 요청
-		String response = restTemplate.postForObject(ELASTICSEARCH_URL, requestEntity, String.class);
+		String response = restTemplate.postForObject(ELASTICSEARCH_URL + "/ngram_index/_search", requestEntity, String.class);
 
 		// 결과 파싱 및 변환
 		return parseResponse(response);
