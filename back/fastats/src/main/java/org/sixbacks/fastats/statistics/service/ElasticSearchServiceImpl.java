@@ -2,7 +2,7 @@ package org.sixbacks.fastats.statistics.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -269,38 +269,47 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public List<String> getSuggestions(String userInput) {
 		List<String> suggestions = new ArrayList<>();
-
-		// SearchRequest 생성 및 인덱스 설정
 		SearchRequest searchRequest = new SearchRequest("stat_data_index");
+
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		searchSourceBuilder.size(1000); // 필요한 만큼 조회 (예: 1000개)
 
-		// bool 쿼리 생성 및 should 절에 match와 fuzzy 쿼리 추가
+		// Bool 쿼리 설정
 		BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-			.should(QueryBuilders.matchQuery("statSurveyName", userInput)) // match 쿼리
-			.should(QueryBuilders.fuzzyQuery("statSurveyName", userInput)
-				.fuzziness(Fuzziness.AUTO)); // fuzzy 쿼리, 편집 거리 2로 설정
+			.should(QueryBuilders.matchQuery("statSurveyName", userInput)) // 기본 매치 쿼리
+			.should(QueryBuilders.matchPhraseQuery("statSurveyName", userInput)); // 정확한 구문 매치 강화
 
-		// bool 쿼리를 SearchSourceBuilder에 추가
+		if (userInput.length() >= 3) { // fuzzy는 입력이 길 경우에만 추가
+			boolQuery.should(QueryBuilders.fuzzyQuery("statSurveyName", userInput)
+				.fuzziness(Fuzziness.AUTO));
+		}
+
 		searchSourceBuilder.query(boolQuery);
 		searchRequest.source(searchSourceBuilder);
 
 		try {
-			// Elasticsearch로 검색 요청 실행
+			// 검색 요청 실행
 			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
 
-			// 결과를 중복 없이 저장하기 위한 Set 사용
-			Set<String> uniqueSuggestions = new HashSet<>();
+			log.info("총 {} 개의 데이터가 조회되었습니다.", searchResponse.getHits().getTotalHits());
+
+			Set<String> uniqueSuggestions = new LinkedHashSet<>(); // 순서를 유지하면서 중복 제거
 
 			for (SearchHit hit : searchResponse.getHits()) {
 				String suggestion = hit.getSourceAsMap().get("statSurveyName").toString();
 				uniqueSuggestions.add(suggestion);
+
+				// 상위 5개까지만 수집 후 중단
+				if (uniqueSuggestions.size() >= 5) {
+					break;
+				}
 			}
 
-			// Set을 List로 변환하여 결과 리스트 생성
+			// Set을 List로 변환하여 상위 5개의 결과 리스트 생성
 			suggestions = new ArrayList<>(uniqueSuggestions);
 
 		} catch (IOException e) {
-			e.printStackTrace();
+			log.error("Failed to fetch suggestions from Elasticsearch: {}", e.getMessage());
 		}
 
 		return suggestions;
