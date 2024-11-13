@@ -178,6 +178,8 @@ services:
       - SPRING_ELASTICSEARCH_USERNAME=elastic
       - SPRING_ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
       - SPRING_CONFIG_ADDITIONAL_LOCATION=/app/config/application-dev.yml
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
       # - SPRING_CONFIG_ADDITIONAL_LOCATION=classpath:/app/config/application-dev.yml
     networks:
       - fastats-network
@@ -201,6 +203,21 @@ services:
     networks:
       - fastats-network
 
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION}
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama:/root/.ollama
+    container_name: ollama
+    tty: true
+    restart: always
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - fastats-network
+
 networks:
   fastats-network:
     driver: bridge
@@ -215,4 +232,6 @@ volumes:
   redis_data:
     driver: local
   mysql_data:
+    driver: local
+  ollama:
     driver: local
