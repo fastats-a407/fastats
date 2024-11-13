@@ -77,7 +77,7 @@ public class ChatbotController {
 		new Thread(() -> {
 			try {
 				chatClient.prompt()
-					.user(chatMessageDTO.getMessage()+ "와 관련된 검색어만 4개를 줘")
+					.user(chatMessageDTO.getMessage()+ "와 관련된 검색어를 5개만 줘. 형식은 반드시'1.관련 검색어1 2.관련 검색어2 3.관련 검색어3 4.관련 검색어4 5.관련 검색어5'로 답해줘. 각 키워드는 고유하고 관련성이 있도록 해줘. 한국어로 된 검색어 결과만 주면 돼")
 					.stream()
 					.content()
 					.subscribe(
