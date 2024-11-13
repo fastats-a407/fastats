@@ -6,6 +6,9 @@ import React, { useEffect, useState } from 'react';
 import Search from './components/search/Search'
 import axios from "axios";
 
+
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
 export default function Home() {
   const [query, setQuery] = useState('');
 
@@ -16,12 +19,30 @@ export default function Home() {
     };
 
     // sessionID 쿠키가 없을 경우에만 서버에 요청
+    // if (!hasSessionCookie()) {
+    //   axios.get('${apiUrl}/initialize', {
+    //     withCredentials: true, // 쿠키 자동 포함 설정
+    //   })
+    //     .then((response) => {
+    //       console.log("sessionID 쿠키가 생성되었습니다:", response.data);
+    //     })
+    //     .catch((error) => {
+    //       console.error("Failed to initialize session:", error);
+    //     });
+    // }
     if (!hasSessionCookie()) {
-      axios.get("http://localhost:8080/api/v1/initialize", {
-        withCredentials: true, // 쿠키 자동 포함 설정
+      fetch(`${apiUrl}/initialize`, {
+        method: 'GET',
+        credentials: 'include', // 쿠키 자동 포함 설정
       })
         .then((response) => {
-          console.log("sessionID 쿠키가 생성되었습니다:", response.data);
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then((data) => {
+          console.log("sessionID 쿠키가 생성되었습니다:", data);
         })
         .catch((error) => {
           console.error("Failed to initialize session:", error);
