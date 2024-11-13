@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 export default function Search() {
     const [query, setQuery] = useState<string>('');
-    const debouncedQuery = useDebouncedState(query, 1000)
+    const debouncedQuery = useDebouncedState(query, 100)
     const [statistics, setStatistics] = useState<SuggestionKeyword[]>([]);
     const [searching, setSearching] = useState<boolean>(false);
     const [isHidden, setIsHidden] = useState<boolean>(true);
