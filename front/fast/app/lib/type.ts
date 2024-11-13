@@ -22,9 +22,29 @@ export interface SuggestionKeyword {
     keyword: string;
 }
 
-export interface ApiResponse{
-    code : number;
-    message : string;
-    data : any;
+
+// 4. 통합 검색용
+export interface SearchParams {
+    keyword: string;
+    page: number;
+    size: number;
+    ctg: string;
+    ctgContent: string;
+
+}
+
+// 5. 통합 검색 결과
+export interface SearchResponse {
+    content: SurveyData[];
+    size: number;
+    totalPages: number;
+}
+
+
+
+export interface ApiResponse {
+    code: number;
+    message: string;
+    data: any;
 }
 

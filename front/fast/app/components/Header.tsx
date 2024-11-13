@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 interface HeaderProps {
     keyword: string;
@@ -17,6 +17,8 @@ export default function Header({ keyword }: HeaderProps) {
             router.push(`/search/${searchTerm}`);
         }
     };
+
+
 
     return (
         <header className="search-header">
