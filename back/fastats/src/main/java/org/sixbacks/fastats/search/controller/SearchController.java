@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/v1/search")
 @Slf4j
@@ -23,7 +25,6 @@ public class SearchController {
 
 	@GetMapping("/autocompletes")
 	public ResponseEntity<?> search(@RequestParam String keyword) {
-		log.info("search keyword: {}", keyword);
 		var list = searchService.searchAutoComplete(keyword);
 		return ResponseEntity.ok(ApiResponse.success("자동완성 불러오기에 성공했습니다.", list));
 	}
