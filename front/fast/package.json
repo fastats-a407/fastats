@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker": "docker build -t thundercloud3/front:test ."
   },
   "dependencies": {
     "@picocss/pico": "^2.0.6",
