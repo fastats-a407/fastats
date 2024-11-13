@@ -38,3 +38,14 @@ out/
 
 ### product ###
 /src/main/resources/application-dev.yaml
+src/main/resources/.env
+*.xlsx
+*.xls
+ngram-settings.json
+nori-settings.json
+ngram_analyzer.json
+nori_analyzer.json
+ngram-settings.json
+nori-settings.json
+ngram_analyzer.json
+nori_analyzer.json
