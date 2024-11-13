@@ -75,12 +75,12 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	private final ResourceLoader resourceLoader;
 
 	public ElasticSearchServiceImpl(
-			@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
-			@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
-			@Qualifier("elasticSearchRepository") ElasticSearchRepository elasticsearchRepository,
-			@Qualifier("objectMapper") ObjectMapper objectMapper,
-			ElasticsearchOperations elasticsearchOperations,
-			ResourceLoader resourceloader) {
+		@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
+		@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
+		@Qualifier("elasticSearchRepository") ElasticSearchRepository elasticsearchRepository,
+		@Qualifier("objectMapper") ObjectMapper objectMapper,
+		ElasticsearchOperations elasticsearchOperations,
+		ResourceLoader resourceloader) {
 		this.statSurveyJdbcRepository = statSurveyJdbcRepository;
 		this.restHighLevelClient = restHighLevelClient;
 		this.elasticsearchRepository = elasticsearchRepository;
@@ -132,8 +132,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			String serializedDoc = serializeDocument(document);
 			if (serializedDoc != null) {
 				IndexRequest indexRequest = new IndexRequest("stat_data_index")
-						.id(document.getTableId())
-						.source(serializedDoc, XContentType.JSON);
+					.id(document.getTableId())
+					.source(serializedDoc, XContentType.JSON);
 				bulkRequest.add(indexRequest);
 			}
 		}
@@ -158,8 +158,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
 	public void saveDataWithBulkThroughMultiThreads() {
 		List<StatDataDocument> documents = statSurveyJdbcRepository.findAllStatData();
-		int batchSize = 500;
-		int numThreads = 4; // 병렬로 실행할 스레드 수
+		int batchSize = 1000;
+		int numThreads = 8; // 병렬로 실행할 스레드 수
 		ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
 		for (int i = 0; i < documents.size(); i += batchSize) {
 			final List<StatDataDocument> batch = documents.subList(i, Math.min(i + batchSize, documents.size()));
@@ -169,8 +169,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					String serializedDoc = serializeDocument(document);
 					if (serializedDoc != null) {
 						IndexRequest indexRequest = new IndexRequest("stat_data_index")
-								.id(document.getTableId())
-								.source(serializedDoc, XContentType.JSON);
+							.id(document.getTableId())
+							.source(serializedDoc, XContentType.JSON);
 						batchRequest.add(indexRequest);
 					}
 				}
@@ -196,7 +196,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	}
 
 	@Override
-// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
+	// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
 	public void saveDataNgramWithBulkThroughMultiThreads() {
 		// 인덱스 이름과 설정 파일 경로
 		String indexName = "ngram_index";
@@ -207,8 +207,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 데이터 가져오기
 		List<StatDataDocument> documents = statSurveyJdbcRepository.findAllStatData();
-		int batchSize = 500;
-		int numThreads = 4; // 병렬로 실행할 스레드 수
+		int batchSize = 1000;
+		int numThreads = 8; // 병렬로 실행할 스레드 수
 		ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
 
 		for (int i = 0; i < documents.size(); i += batchSize) {
@@ -219,8 +219,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					String serializedDoc = serializeDocument(document);
 					if (serializedDoc != null) {
 						IndexRequest indexRequest = new IndexRequest(indexName)
-								.id(document.getTableId())
-								.source(serializedDoc, XContentType.JSON);
+							.id(document.getTableId())
+							.source(serializedDoc, XContentType.JSON);
 						batchRequest.add(indexRequest);
 					}
 				}
@@ -258,18 +258,18 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size);
 
 		Query query = NativeQuery.builder()
-				.withQuery(q -> q
-						.multiMatch(m -> m
-								.query(keyword)
-								.fields("statSurveyName", "statOrgName",
-										"statTableName", "statTableContent",
-										"statTableComment")
-								// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
-								.type(TextQueryType.BestFields)
-						)
+			.withQuery(q -> q
+				.multiMatch(m -> m
+					.query(keyword)
+					.fields("statSurveyName", "statOrgName",
+						"statTableName", "statTableContent",
+						"statTableComment")
+					// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
+					.type(TextQueryType.BestFields)
 				)
-				.withPageable(pageable)
-				.build();
+			)
+			.withPageable(pageable)
+			.build();
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 
@@ -282,8 +282,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-				.map(hit -> docToResponse(hit.getContent()))
-				.collect(Collectors.toList());
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -307,8 +307,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-				.map(hit -> docToResponse(hit.getContent()))
-				.collect(Collectors.toList());
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -325,32 +325,32 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size);
 
 		Query query = NativeQuery.builder()
-				.withQuery(q -> q
-						.bool(b -> {
-							// ctg가 null이 아닌 경우에만 term 조건 추가
-							if (ctg != null && ctgContent != null) {
-								b.filter(m -> m
-										.term(t -> t
-												.field(ctg)
-												.value(ctgContent) // 정확히 일치해야 하는 필드
-										)
-								);
-							}
-							// 항상 적용되는 multiMatch 조건 추가
-							b.must(m -> m
-									.multiMatch(multi -> multi
-											.query(keyword)
-											.fields("statSurveyName", "statTableName",
-													"statTableContent", "statTableComment")
-											.type(TextQueryType.BestFields)
-											.analyzer("fastats_nori")
-									)
-							);
-							return b;
-						})
-				)
-				.withPageable(pageable)
-				.build();
+			.withQuery(q -> q
+				.bool(b -> {
+					// ctg가 null이 아닌 경우에만 term 조건 추가
+					if (ctg != null && ctgContent != null) {
+						b.filter(m -> m
+							.term(t -> t
+								.field(ctg)
+								.value(ctgContent) // 정확히 일치해야 하는 필드
+							)
+						);
+					}
+					// 항상 적용되는 multiMatch 조건 추가
+					b.must(m -> m
+						.multiMatch(multi -> multi
+							.query(keyword)
+							.fields("statSurveyName", "statTableName",
+								"statTableContent", "statTableComment")
+							.type(TextQueryType.BestFields)
+							.analyzer("fastats_nori")
+						)
+					);
+					return b;
+				})
+			)
+			.withPageable(pageable)
+			.build();
 
 		return searchByKeyword(searchCriteria, query);
 	}
@@ -374,8 +374,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// 페이지가 적절한 경우 처리
 		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-				.map(hit -> docToResponse(hit.getContent()))
-				.collect(Collectors.toList());
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
 
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
@@ -387,14 +387,14 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
 
 		Query query = new MultiMatchQueryCustomBuilder()
-				.withKeyword(keyword)
-				.addFieldWithBoost("statSurveyName", 1.2f)
-				.addFieldWithBoost("statOrgName", 1.0f)
-				.addFieldWithBoost("statTableName", 1.6f)
-				.addFieldWithBoost("statTableContent", 1.2f)
-				.addFieldWithBoost("statTableComment", 1.2f)
-				.withAnalyzer("fastats_nori")
-				.build();
+			.withKeyword(keyword)
+			.addFieldWithBoost("statSurveyName", 1.2f)
+			.addFieldWithBoost("statOrgName", 1.0f)
+			.addFieldWithBoost("statTableName", 1.6f)
+			.addFieldWithBoost("statTableContent", 1.2f)
+			.addFieldWithBoost("statTableComment", 1.2f)
+			.withAnalyzer("fastats_nori")
+			.build();
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
 
@@ -464,8 +464,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	private List<TableByDto> bucketToDtoList(List<StringTermsBucket> array) {
 
 		return array.stream()
-				.map(bucket -> new TableByDto(bucket.key().stringValue(), (int)bucket.docCount()))
-				.collect(Collectors.toList());
+			.map(bucket -> new TableByDto(bucket.key().stringValue(), (int)bucket.docCount()))
+			.collect(Collectors.toList());
 
 	}
 
@@ -473,18 +473,17 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// Embedded와 비슷하게 필요한 StatSurveyInfoDto 생성
 		StatSurveyInfoDto statSurveyInfo = new StatSurveyInfoDto(document.getStatOrgName(),
-				document.getStatSurveyName(),
-				null);
+			document.getStatSurveyName(),
+			null);
 
 		return new StatTableListResponse(
-				document.getStatTableName(),  // title
-				statSurveyInfo,              // statSurveyInfo
-				document.getCollInfoStartDate(),  // collStartDate
-				document.getCollInfoEndDate(),    // collEndDate
-				document.getStatTableKosisViewLink() // tableLink
+			document.getStatTableName(),  // title
+			statSurveyInfo,              // statSurveyInfo
+			document.getCollInfoStartDate(),  // collStartDate
+			document.getCollInfoEndDate(),    // collEndDate
+			document.getStatTableKosisViewLink() // tableLink
 		);
 	}
-
 
 	// ngram 애널라이저가 적용된 인덱스를 생성하는 메서드
 	private void createNgramIndexIfNeeded(String indexName, String settingsPath) {
@@ -495,7 +494,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			if (!indexExists) {
 				// 설정 파일 로드
 				Resource resource = resourceLoader.getResource("classpath:" + settingsPath);
-				String settingsJson = new String(Files.readAllBytes(resource.getFile().toPath()), StandardCharsets.UTF_8);
+				String settingsJson = new String(Files.readAllBytes(resource.getFile().toPath()),
+					StandardCharsets.UTF_8);
 
 				// JSON 파싱
 				Map<String, Object> settings = objectMapper.readValue(settingsJson, Map.class);
