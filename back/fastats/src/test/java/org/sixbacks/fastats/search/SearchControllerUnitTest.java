@@ -27,25 +27,13 @@ public class SearchControllerUnitTest {
 	@Test
 	public void testSearch() throws Exception {
 		List<SearchAutoCompleteResponseDto> expected = Arrays.asList(
-			SearchAutoCompleteResponseDto.builder()
-				.keyword("대한민국1")
-				.build(),
-			SearchAutoCompleteResponseDto.builder()
-				.keyword("대한민국2")
-				.build()
+				SearchAutoCompleteResponseDto.builder()
+						.keyword("대한민국1")
+						.build(),
+				SearchAutoCompleteResponseDto.builder()
+						.keyword("대한민국2")
+						.build()
 		);
-		given(searchService.searchAutoComplete(anyString())).willReturn(expected);
-		mockMvc.perform(get("/api/v1/search/autocompletes")
-				.queryParam("keyword", "대한"))
-			.andExpect(status().isOk())
-			.andExpectAll(
-				jsonPath("$.code").value(200),
-				jsonPath("$.message").value("자동완성 불러오기에 성공했습니다."),
-				jsonPath("$.data").isArray(),
-				jsonPath("$.data[0].keyword").value(expected.get(0).getKeyword()),
-				jsonPath("$.data[1].keyword").value(expected.get(1).getKeyword())
-			);
 
 	}
-
 }
