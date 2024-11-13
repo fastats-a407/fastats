@@ -61,6 +61,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
+import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -327,8 +328,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Query query = NativeQuery.builder()
 			.withQuery(q -> q
 				.bool(b -> {
-					// ctg가 null이 아닌 경우에만 term 조건 추가
-					if (ctg != null && ctgContent != null) {
+					// 요청 파라미터에서 빈 값은 null이 아니라 빈 문자열로 처리됨
+					if (StringUtils.isNotBlank(ctg) && StringUtils.isNotBlank(ctgContent)) {
 						b.filter(m -> m
 							.term(t -> t
 								.field(ctg)
