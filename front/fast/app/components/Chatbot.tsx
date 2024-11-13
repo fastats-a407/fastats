@@ -3,8 +3,10 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
 const axiosInstance = axios.create({
-  baseURL: "http://localhost:8080/api/v1/chatbot",
+  baseURL: `${apiUrl}/chatbot`,
   withCredentials: true, // 모든 요청에 쿠키 포함 설정
 });
 
@@ -69,9 +71,28 @@ export default function Chatbot() {
     if (input.trim()) {
       setMessages((prev) => [...prev, { sender: "user", text: input }]); // 사용자 메시지 화면에 표시
 
+      // try {
+      //   // 기존 EventSource 연결은 유지하면서 메시지 전송만 수행
+      //   await axiosInstance.post("/message", { message: input });
+      //   setInput("");
+      // } catch (error) {
+      //   console.error("Failed to send message:", error);
+      // }
       try {
-        // 기존 EventSource 연결은 유지하면서 메시지 전송만 수행
-        await axiosInstance.post("/message", { message: input });
+        // 메시지 전송 수행
+        const response = await fetch("/message", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: input }),
+          credentials: "include", // 쿠키 자동 포함 설정
+        });
+        
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+  
         setInput("");
       } catch (error) {
         console.error("Failed to send message:", error);
@@ -81,8 +102,20 @@ export default function Chatbot() {
 
   // SSE 연결 종료 요청
   const endStream = async () => {
+    // try {
+    //   await axiosInstance.get("/end");
+    // } catch (error) {
+    //   console.error("Failed to end stream:", error);
+    // }
     try {
-      await axiosInstance.get("/end");
+      const response = await fetch("/end", {
+        method: "GET",
+        credentials: "include", // 쿠키 자동 포함 설정
+      });
+  
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
     } catch (error) {
       console.error("Failed to end stream:", error);
     }
