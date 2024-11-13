@@ -1,5 +1,7 @@
 package org.sixbacks.fastats.statistics.controller;
 
+import java.util.List;
+
 import org.sixbacks.fastats.global.response.ApiResponse;
 import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
@@ -82,8 +84,9 @@ public class StatisticsController {
 		NOTE: 현재 generic을 ?로 설정했으므로 기능 코드 선제 작성 가능
 	 */
 	@GetMapping("/suggestions")
-	public ResponseEntity<ApiResponse<?>> getKeywordSuggestions(@RequestParam String keyword) {
-		return null;
+	public ResponseEntity<ApiResponse<List<String>>> getKeywordSuggestions(@RequestParam String keyword) {
+		List<String> response = elasticSearchService.getSuggestions(keyword);
+		return ResponseEntity.ok(ApiResponse.success("유사 검색어 반환에 성공했습니다.",response));
 	}
 
 	@PostMapping("/elastic")

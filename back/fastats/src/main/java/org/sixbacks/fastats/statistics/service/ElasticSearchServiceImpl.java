@@ -3,26 +3,29 @@ package org.sixbacks.fastats.statistics.service;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
-import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
-import co.elastic.clients.elasticsearch.indices.ExistsRequest;
-import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
@@ -34,6 +37,7 @@ import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.dto.response.TableByDto;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
 import org.sixbacks.fastats.statistics.entity.document.StatNgramDataDocument;
+import org.sixbacks.fastats.statistics.repository.jdbc.ElasticSearchRepository;
 import org.sixbacks.fastats.statistics.repository.jdbc.StatSurveyJdbcRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.Resource;
@@ -50,7 +54,6 @@ import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.Query;
-import org.springframework.data.elasticsearch.repository.ElasticsearchRepository;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,7 +69,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	private final StatSurveyJdbcRepository statSurveyJdbcRepository;
 	private final RestHighLevelClient restHighLevelClient;
-	private final ElasticsearchRepository elasticsearchRepository;
+	private final ElasticSearchRepository elasticsearchRepository;
 	private final ObjectMapper objectMapper;
 	private final ElasticsearchOperations elasticsearchOperations;
 	private final ResourceLoader resourceLoader;
@@ -74,7 +77,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	public ElasticSearchServiceImpl(
 			@Qualifier("statSurveyJdbcRepository") StatSurveyJdbcRepository statSurveyJdbcRepository,
 			@Qualifier("restHighLevelClient") RestHighLevelClient restHighLevelClient,
-			@Qualifier("elasticSearchRepository") ElasticsearchRepository elasticsearchRepository,
+			@Qualifier("elasticSearchRepository") ElasticSearchRepository elasticsearchRepository,
 			@Qualifier("objectMapper") ObjectMapper objectMapper,
 			ElasticsearchOperations elasticsearchOperations,
 			ResourceLoader resourceloader) {
@@ -508,6 +511,71 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			log.error("ngram 인덱스 생성 중 오류 발생: {}", e.getMessage());
 		}
 	}
+
+	@Override
+	public List<String> getSuggestions(String userInput) {
+		// 제안 결과를 저장할 리스트를 생성합니다.
+		List<String> suggestions = new ArrayList<>();
+
+		// Elasticsearch에서 "stat_data_index"라는 인덱스로 검색 요청을 초기화합니다.
+		SearchRequest searchRequest = new SearchRequest("stat_data_index");
+
+		// 검색에 필요한 설정을 빌드합니다.
+		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+		// 검색 결과로 최대 1000개까지 가져오도록 설정합니다.
+		searchSourceBuilder.size(1000);
+
+		// 여러 검색 조건을 결합하기 위한 Bool 쿼리를 생성합니다.
+		BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+			// "statSurveyName" 필드가 사용자 입력과 일치하는 문서를 찾습니다.
+			.should(QueryBuilders.matchQuery("statSurveyName", userInput))
+			// "statSurveyName" 필드에 정확한 구문으로 사용자 입력이 포함된 문서를 찾습니다.
+			.should(QueryBuilders.matchPhraseQuery("statSurveyName", userInput));
+
+		// 사용자 입력이 3자 이상인 경우
+		if (userInput.length() >= 3) {
+			// 철자 오류나 유사한 단어를 찾기 위해 퍼지 쿼리를 추가합니다.
+			boolQuery.should(QueryBuilders.fuzzyQuery("statSurveyName", userInput)
+				.fuzziness(Fuzziness.AUTO)); // 퍼지 정도를 자동으로 설정합니다.
+		}
+
+		// Bool 쿼리를 검색 소스에 설정합니다.
+		searchSourceBuilder.query(boolQuery);
+		// 검색 요청에 검색 소스를 적용합니다.
+		searchRequest.source(searchSourceBuilder);
+
+		SearchResponse searchResponse = null;
+
+		try {
+			// Elasticsearch 클라이언트를 사용하여 검색 요청을 실행합니다.
+			searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
+		} catch (IOException e) {
+			// 예외가 발생하면 서버 내부 오류를 나타내는 커스텀 예외를 던집니다.
+			throw new CustomException(ErrorCode.SERVER_INTERNAL_ERROR);
+		}
+
+		// 순서를 유지하면서 중복을 제거하기 위해 LinkedHashSet을 사용합니다.
+		Set<String> uniqueSuggestions = new LinkedHashSet<>();
+
+		// 검색 결과를 순회합니다.
+		for (SearchHit hit : searchResponse.getHits()) {
+			// 각 결과에서 "statSurveyName" 필드를 가져옵니다.
+			String suggestion = hit.getSourceAsMap().get("statSurveyName").toString();
+			// 제안 목록에 추가합니다. (중복된 값은 자동으로 제외됩니다)
+			uniqueSuggestions.add(suggestion);
+			// 상위 5개 제안만 필요하므로 5개를 모으면 반복을 중단합니다.
+			if (uniqueSuggestions.size() >= 5) {
+				break;
+			}
+		}
+
+		// 유니크한 제안들을 리스트로 변환합니다.
+		suggestions = new ArrayList<>(uniqueSuggestions);
+
+		// 제안 리스트를 반환합니다.
+		return suggestions;
+	}
+
 }
 
 
