@@ -1,7 +1,5 @@
 package org.sixbacks.fastats.statistics.service;
 
-import java.util.stream.StreamSupport;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
@@ -30,15 +28,7 @@ public class ElasticSearchServiceImplTest {
 
 	@Test
 	public void getCountData() {
-		// Elasticsearch에서 데이터가 저장되었는지 확인
-		Iterable<StatDataDocument> responses = elasticsearchRepository.findAll();
-
-		// 저장된 데이터 출력
-		responses.forEach(System.out::println);
-
-		// 데이터가 들어갔는지 개수를 확인
-		long count = StreamSupport.stream(responses.spliterator(), false).count();
-		System.out.println("Stored documents count: " + count);
+		System.out.println("Stored documents count: " + elasticsearchRepository.count());
 	}
 
 	@Test
