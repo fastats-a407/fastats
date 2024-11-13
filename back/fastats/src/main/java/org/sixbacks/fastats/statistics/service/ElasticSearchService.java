@@ -17,6 +17,8 @@ public interface ElasticSearchService {
 
 	void saveDataWithBulkThroughMultiThreads();
 
+	void saveDataNgramWithBulkThroughMultiThreads();
+
 	/**
 	 * @deprecated {@link #searchByKeyword(SearchCriteria)} 를 이용.
 	 */
