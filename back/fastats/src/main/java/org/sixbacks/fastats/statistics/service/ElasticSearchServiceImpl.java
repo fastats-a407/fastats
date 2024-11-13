@@ -18,6 +18,7 @@ import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
 import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
+import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
@@ -165,11 +166,10 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	}
 
-	/*
-		NOTE:
-		여러 필드에 대해서 MultiMatch를 통해 정확도(relevancy) 기준으로 검색할 예정이므로,
-		ElasticSearchRepository 대신 elasticSearchOperations를 이용해 복잡성 해결
+	/**
+	 * @deprecated {@link #searchByKeyword(SearchCriteria)} 를 이용.
 	 */
+	@Deprecated
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size) {
 
@@ -206,8 +206,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
 	}
 
-	/*
-		최적의 검색 결과 테스트를 위해 Query를 외부에서 작성해 넘기는 메서드
+	/**
+	 * @deprecated {@link #searchByKeyword(SearchCriteria, Query)} 를 이용.
 	 */
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query) {
@@ -220,6 +220,73 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		long totalHits = searchHits.getTotalHits();
 		int totalPages = (int)Math.ceil((double)totalHits / size);
 		if (page >= totalPages) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+
+		// 페이지가 적절한 경우 처리
+		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+			.map(hit -> docToResponse(hit.getContent()))
+			.collect(Collectors.toList());
+
+		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
+	}
+
+	@Override
+	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria) {
+
+		String keyword = searchCriteria.getKeyword();
+		int page = searchCriteria.getPage();
+		int size = searchCriteria.getSize();
+		String ctg = searchCriteria.getCtg();
+		String ctgContent = searchCriteria.getCtgContent();
+
+		Pageable pageable = PageRequest.of(page, size);
+
+		Query query = NativeQuery.builder()
+			.withQuery(q -> q
+				.bool(b -> {
+					// ctg가 null이 아닌 경우에만 term 조건 추가
+					if (ctg != null && ctgContent != null) {
+						b.filter(m -> m
+							.term(t -> t
+								.field(ctg)
+								.value(ctgContent) // 정확히 일치해야 하는 필드
+							)
+						);
+					}
+					// 항상 적용되는 multiMatch 조건 추가
+					b.must(m -> m
+						.multiMatch(multi -> multi
+							.query(keyword)
+							.fields("statSurveyName", "statTableName",
+								"statTableContent", "statTableComment")
+							.type(TextQueryType.BestFields)
+							.analyzer("fastats_nori")
+						)
+					);
+					return b;
+				})
+			)
+			.withPageable(pageable)
+			.build();
+
+		return searchByKeyword(searchCriteria, query);
+	}
+
+	@Override
+	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
+
+		int page = searchCriteria.getPage();
+		int size = searchCriteria.getSize();
+
+		Pageable pageable = PageRequest.of(page, size);
+
+		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+
+		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
+		long totalHits = searchHits.getTotalHits();
+		int totalPages = (int)Math.ceil((double)totalHits / size);
+		if (page > 0 && page >= totalPages) {
 			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 		}
 

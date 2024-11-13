@@ -1,8 +1,10 @@
 package org.sixbacks.fastats.statistics.controller;
 
 import org.sixbacks.fastats.global.response.ApiResponse;
+import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
+import org.sixbacks.fastats.statistics.dto.response.StatTablePageResponse;
 import org.sixbacks.fastats.statistics.service.CollInfoService;
 import org.sixbacks.fastats.statistics.service.ElasticSearchService;
 import org.sixbacks.fastats.statistics.service.SectorService;
@@ -46,16 +48,22 @@ public class StatisticsController {
 		TODO: ES Document 재작성 완료 후 ctg 관련 로직 작업 필요
 	 */
 	@GetMapping("")
-	public ResponseEntity<ApiResponse<Page<StatTableListResponse>>> getStatTableList(@RequestParam String keyword,
-		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam String ctg) {
+	public ResponseEntity<ApiResponse<StatTablePageResponse>> getStatTableList(@RequestParam String keyword,
+		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam String ctg,
+		@RequestParam String ctgContent) {
 
 		// size가 비어 있으면 위 RequestParam에서 10으로 설정되나, 유저가 옳지 않은 값 입력 시 size 제한
 		if (size != 10 && size != 20 && size != 30) {
 			size = 10;
 		}
 
-		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(keyword, page, size);
-		ApiResponse<Page<StatTableListResponse>> response = ApiResponse.success("검색이 성공했습니다.", pages);
+		SearchCriteria searchCriteria = new SearchCriteria(keyword, page, size, ctg, ctgContent);
+
+		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(searchCriteria);
+		StatTablePageResponse statTablePage = new StatTablePageResponse(pages.getContent(), pages.getSize(),
+			pages.getTotalPages());
+
+		ApiResponse<StatTablePageResponse> response = ApiResponse.success("검색이 성공했습니다.", statTablePage);
 
 		return ResponseEntity.ok(response);
 	}
