@@ -111,8 +111,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		for (StatDataDocument document : documents) {
 			String serializedDoc = serializeDocument(document);
 			if (serializedDoc != null) {
-				IndexRequest indexRequest = new IndexRequest("stat_data_index")
-					.id(document.getTableId())
+				IndexRequest indexRequest = new IndexRequest("stat_data_index").id(document.getTableId())
 					.source(serializedDoc, XContentType.JSON);
 				bulkRequest.add(indexRequest);
 			}
@@ -148,8 +147,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 				for (StatDataDocument document : batch) {
 					String serializedDoc = serializeDocument(document);
 					if (serializedDoc != null) {
-						IndexRequest indexRequest = new IndexRequest("stat_data_index")
-							.id(document.getTableId())
+						IndexRequest indexRequest = new IndexRequest("stat_data_index").id(document.getTableId())
 							.source(serializedDoc, XContentType.JSON);
 						batchRequest.add(indexRequest);
 					}
@@ -185,16 +183,10 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size);
 
 		Query query = NativeQuery.builder()
-			.withQuery(q -> q
-				.multiMatch(m -> m
-					.query(keyword)
-					.fields("statSurveyName", "statOrgName",
-						"statTableName", "statTableContent",
-						"statTableComment")
-					// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
-					.type(TextQueryType.BestFields)
-				)
-			)
+			.withQuery(q -> q.multiMatch(m -> m.query(keyword)
+				.fields("statSurveyName", "statOrgName", "statTableName", "statTableContent", "statTableComment")
+				// NOTE: 검색 방식에 따라 TextQueryType 변경 필요
+				.type(TextQueryType.BestFields)))
 			.withPageable(pageable)
 			.build();
 
@@ -208,7 +200,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		}
 
 		// 페이지가 적절한 경우 처리
-		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+		List<StatTableListResponse> documents = searchHits.getSearchHits()
+			.stream()
 			.map(hit -> docToResponse(hit.getContent()))
 			.collect(Collectors.toList());
 
@@ -233,7 +226,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		}
 
 		// 페이지가 적절한 경우 처리
-		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+		List<StatTableListResponse> documents = searchHits.getSearchHits()
+			.stream()
 			.map(hit -> docToResponse(hit.getContent()))
 			.collect(Collectors.toList());
 
@@ -251,33 +245,19 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		Pageable pageable = PageRequest.of(page, size);
 
-		Query query = NativeQuery.builder()
-			.withQuery(q -> q
-				.bool(b -> {
-					// ctg가 null이 아닌 경우에만 term 조건 추가
-					if (ctg != null && ctgContent != null) {
-						b.filter(m -> m
-							.term(t -> t
-								.field(ctg)
-								.value(ctgContent) // 정확히 일치해야 하는 필드
-							)
-						);
-					}
-					// 항상 적용되는 multiMatch 조건 추가
-					b.must(m -> m
-						.multiMatch(multi -> multi
-							.query(keyword)
-							.fields("statSurveyName", "statTableName",
-								"statTableContent", "statTableComment")
-							.type(TextQueryType.BestFields)
-							.analyzer("fastats_nori")
-						)
-					);
-					return b;
-				})
-			)
-			.withPageable(pageable)
-			.build();
+		Query query = NativeQuery.builder().withQuery(q -> q.bool(b -> {
+			// ctg가 null이 아닌 경우에만 term 조건 추가
+			if (ctg != null && ctgContent != null) {
+				b.filter(m -> m.term(t -> t.field(ctg).value(ctgContent) // 정확히 일치해야 하는 필드
+				));
+			}
+			// 항상 적용되는 multiMatch 조건 추가
+			b.must(m -> m.multiMatch(multi -> multi.query(keyword)
+				.fields("statSurveyName", "statTableName", "statTableContent", "statTableComment")
+				.type(TextQueryType.BestFields)
+				.analyzer("fastats_nori")));
+			return b;
+		})).withPageable(pageable).build();
 
 		return searchByKeyword(searchCriteria, query);
 	}
@@ -300,7 +280,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		}
 
 		// 페이지가 적절한 경우 처리
-		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
+		List<StatTableListResponse> documents = searchHits.getSearchHits()
+			.stream()
 			.map(hit -> docToResponse(hit.getContent()))
 			.collect(Collectors.toList());
 
@@ -313,8 +294,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
 
-		Query query = new MultiMatchQueryCustomBuilder()
-			.withKeyword(keyword)
+		Query query = new MultiMatchQueryCustomBuilder().withKeyword(keyword)
 			.addFieldWithBoost("statSurveyName", 1.2f)
 			.addFieldWithBoost("statOrgName", 1.0f)
 			.addFieldWithBoost("statTableName", 1.6f)
@@ -400,11 +380,9 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// Embedded와 비슷하게 필요한 StatSurveyInfoDto 생성
 		StatSurveyInfoDto statSurveyInfo = new StatSurveyInfoDto(document.getStatOrgName(),
-			document.getStatSurveyName(),
-			null);
+			document.getStatSurveyName(), null);
 
-		return new StatTableListResponse(
-			document.getStatTableName(),  // title
+		return new StatTableListResponse(document.getStatTableName(),  // title
 			statSurveyInfo,              // statSurveyInfo
 			document.getCollInfoStartDate(),  // collStartDate
 			document.getCollInfoEndDate(),    // collEndDate
@@ -414,48 +392,66 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 	@Override
 	public List<String> getSuggestions(String userInput) {
+		// 제안 결과를 저장할 리스트를 생성합니다.
 		List<String> suggestions = new ArrayList<>();
+
+		// Elasticsearch에서 "stat_data_index"라는 인덱스로 검색 요청을 초기화합니다.
 		SearchRequest searchRequest = new SearchRequest("stat_data_index");
 
+		// 검색에 필요한 설정을 빌드합니다.
 		SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-		searchSourceBuilder.size(1000); // 필요한 만큼 조회 (예: 1000개)
+		// 검색 결과로 최대 1000개까지 가져오도록 설정합니다.
+		searchSourceBuilder.size(1000);
 
-		// Bool 쿼리 설정
+		// 여러 검색 조건을 결합하기 위한 Bool 쿼리를 생성합니다.
 		BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-			.should(QueryBuilders.matchQuery("statSurveyName", userInput)) // 기본 매치 쿼리
-			.should(QueryBuilders.matchPhraseQuery("statSurveyName", userInput)); // 정확한 구문 매치 강화
+			// "statSurveyName" 필드가 사용자 입력과 일치하는 문서를 찾습니다.
+			.should(QueryBuilders.matchQuery("statSurveyName", userInput))
+			// "statSurveyName" 필드에 정확한 구문으로 사용자 입력이 포함된 문서를 찾습니다.
+			.should(QueryBuilders.matchPhraseQuery("statSurveyName", userInput));
 
-		if (userInput.length() >= 3) { // fuzzy는 입력이 길 경우에만 추가
+		// 사용자 입력이 3자 이상인 경우
+		if (userInput.length() >= 3) {
+			// 철자 오류나 유사한 단어를 찾기 위해 퍼지 쿼리를 추가합니다.
 			boolQuery.should(QueryBuilders.fuzzyQuery("statSurveyName", userInput)
-				.fuzziness(Fuzziness.AUTO));
+				.fuzziness(Fuzziness.AUTO)); // 퍼지 정도를 자동으로 설정합니다.
 		}
 
+		// Bool 쿼리를 검색 소스에 설정합니다.
 		searchSourceBuilder.query(boolQuery);
+		// 검색 요청에 검색 소스를 적용합니다.
 		searchRequest.source(searchSourceBuilder);
 
 		SearchResponse searchResponse = null;
 
 		try {
-			// 검색 요청 실행
+			// Elasticsearch 클라이언트를 사용하여 검색 요청을 실행합니다.
 			searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
 		} catch (IOException e) {
+			// 예외가 발생하면 서버 내부 오류를 나타내는 커스텀 예외를 던집니다.
 			throw new CustomException(ErrorCode.SERVER_INTERNAL_ERROR);
 		}
 
-		Set<String> uniqueSuggestions = new LinkedHashSet<>(); // 순서를 유지하면서 중복 제거
+		// 순서를 유지하면서 중복을 제거하기 위해 LinkedHashSet을 사용합니다.
+		Set<String> uniqueSuggestions = new LinkedHashSet<>();
 
+		// 검색 결과를 순회합니다.
 		for (SearchHit hit : searchResponse.getHits()) {
+			// 각 결과에서 "statSurveyName" 필드를 가져옵니다.
 			String suggestion = hit.getSourceAsMap().get("statSurveyName").toString();
+			// 제안 목록에 추가합니다. (중복된 값은 자동으로 제외됩니다)
 			uniqueSuggestions.add(suggestion);
-			// 상위 5개까지만 수집 후 중단
+			// 상위 5개 제안만 필요하므로 5개를 모으면 반복을 중단합니다.
 			if (uniqueSuggestions.size() >= 5) {
 				break;
 			}
 		}
 
-		// Set을 List로 변환하여 상위 5개의 결과 리스트 생성
+		// 유니크한 제안들을 리스트로 변환합니다.
 		suggestions = new ArrayList<>(uniqueSuggestions);
 
+		// 제안 리스트를 반환합니다.
 		return suggestions;
 	}
+
 }
