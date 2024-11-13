@@ -13,7 +13,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
+import org.sixbacks.fastats.statistics.annotation.SearchCriteriaArgumentResolver;
+import org.sixbacks.fastats.statistics.annotation.WithSearchCriteria;
 import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
+import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.entity.document.StatDataDocument;
@@ -35,7 +38,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 	TODO: 현재 테스트 환경이 아닌 로컬 개발 환경의 ElasticSearch를 이용하고 있으므로 분리 필요
 	TODO: 임시 성능 테스트 로직 상 필요한 기본값 미리 설정하도록 모듈화 필요
  */
-@ExtendWith(SpringExtension.class)
+@ExtendWith({SpringExtension.class, SearchCriteriaArgumentResolver.class})
 @SpringBootTest
 @ActiveProfiles("dev")
 @TestPropertySource(locations = "classpath:.env")
@@ -61,35 +64,33 @@ public class ElasticSearchServiceIntegrationTest {
 	}
 
 	@Test
+	@WithSearchCriteria
 	@DisplayName("ElasticSearch 키워드 기반 검색 테스트 - 긍정 결과")
-	public void searchByKeyword_ReturnsResults_WhenPageRequestIsValid() {
+	public void searchByKeyword_ReturnsResults_WhenPageRequestIsValid(SearchCriteria searchCriteria) {
 		// Given: Local 환경에서 해당 필드에 대해 keyword를 포함하는 데이터가 있다는 가정
-		String keyword = "Data";
-		int page = 0;
-		int size = 5;
+		// WithSearchCriteria의 기본값 이용
 
 		// When: searchByKeyword() 메서드 검사
-		Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(keyword, page, size);
+		Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(searchCriteria);
 
 		// Then: 검색 결과가 비어있지 않아야 함
 		assertThat(responses).isNotNull();
 
 		responses.forEach(response -> {
-			assertThat(response.toString()).containsIgnoringCase(keyword);
+			assertThat(response.toString()).containsIgnoringCase(searchCriteria.getKeyword());
 		});
 	}
 
 	@Test
 	@DisplayName("ElasticSearch 키워드 기반 검색 테스트 - 잘못된 페이지 요청")
-	public void searchByKeyword_EmptyOrException_WhenPageOutOfRange() {
+	@WithSearchCriteria(keyword = "일반가구", page = 30, size = 50)
+	public void searchByKeyword_EmptyOrException_WhenPageOutOfRange(SearchCriteria searchCriteria) {
 		// Given: Local 환경에서 해당 필드에 대해 keyword를 포함하는 데이터가 있다는 가정
-		String keyword = "Data";
-		int page = 10;
-		int size = 500;
+		// WithSearchCriteria 어노테이션 참조
 
 		// When & Then: searchByKeyword() 메서드 호출 시 결과가 비어있거나 예외가 발생하는지 확인
 		try {
-			Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(keyword, page, size);
+			Page<StatTableListResponse> responses = elasticSearchService.searchByKeyword(searchCriteria);
 
 			// Then: 결과가 비어 있는 경우 검증
 			assertThat(responses).isNotNull();
@@ -156,7 +157,7 @@ public class ElasticSearchServiceIntegrationTest {
 	@DisplayName("ElasticSearch 키워드 기반 Nori 적용 검색 정확도 테스트")
 	public void testSearchQuerySimilarityAndPerformanceWithNori() {
 		// 비교할 키워드와 기대되는 결과 세트 (실제 사이트 기준)
-		String keyword = "인구";
+		String keyword = "일반가구";
 		List<String> expectedResults = List.of("가구주의 성, 연령 및 거처의 종류별 가구(일반가구) - 시군구",
 			"가구주의 성, 연령 및 세대구성별 가구(일반가구) - 시군구",
 			"세대구성 및 가구원수별 가구(일반가구) - 시군구",
@@ -182,14 +183,14 @@ public class ElasticSearchServiceIntegrationTest {
 			.addFieldWithBoost("statTableContent", 1.2f)
 			.addFieldWithBoost("statTableComment", 1.2f)
 			.addPageable(pageable)
-			.withAnalyzer("nori")
+			.withAnalyzer("fastats_nori")
 			.build();
 
 		long startTime = System.currentTimeMillis();
 
 		// 각 쿼리를 실행하여 결과를 얻음
 		Page<StatTableListResponse> result = elasticSearchService.searchByKeyword(keyword, page, size, query);
-
+		System.out.println(result.getContent());
 		long endTime = System.currentTimeMillis();
 		long duration = endTime - startTime;
 		System.out.println("Query Execution Time: " + duration + " ms");
@@ -325,6 +326,7 @@ public class ElasticSearchServiceIntegrationTest {
 			.addFieldWithBoost("statTableName", 1.6f)
 			.addFieldWithBoost("statTableContent", 1.2f)
 			.addFieldWithBoost("statTableComment", 1.2f)
+			.withAnalyzer("fastats_nori")
 			.addAggregationField("sectorName")
 			.addAggregationField("statSurveyName")
 			.queryType(TextQueryType.MostFields)
@@ -336,6 +338,18 @@ public class ElasticSearchServiceIntegrationTest {
 		CategoryListResponse categoryListResponse = elasticSearchService.getCategoriesByKeyword(keyword, aggrList,
 			query);
 
+	}
+
+	@Test
+	@WithSearchCriteria
+	public void testSearchByKeyword_withCriteria(SearchCriteria searchCriteria) {
+
+		Pageable pageable = PageRequest.of(searchCriteria.getPage(), searchCriteria.getSize());
+
+		Page<StatTableListResponse> resultPage = elasticSearchService.searchByKeyword(searchCriteria);
+
+		System.out.println(resultPage.getTotalElements());
+		// System.out.println(resultPage.getContent());
 	}
 
 	private List<Map<String, Float>> generateAllBoostCombinations(List<String> fields, List<Float> boostValues) {
