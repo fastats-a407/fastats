@@ -10,16 +10,25 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.support.BasicAuthenticationInterceptor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
 public class SearchService {
 
-	private final RestTemplate restTemplate = new RestTemplate();
+	private final RestTemplate restTemplate;
+	private final String NGRAM_URL;
 
-	@Value("${spring.elasticsearch.uris}")
-	private String ELASTICSEARCH_URL;
+	public SearchService(@Value("${spring.elasticsearch.uris}") String elasticsearchUrl,
+						 @Value("${spring.elasticsearch.username}") String username,
+						 @Value("${spring.elasticsearch.password}") String password) {
+		this.restTemplate = new RestTemplate();
+		this.NGRAM_URL = elasticsearchUrl + "/ngram_index/_search";
+
+		// Basic Authentication 설정
+		restTemplate.getInterceptors().add(new BasicAuthenticationInterceptor(username, password));
+	}
 
 	public List<SearchAutoCompleteResponseDto> searchAutoComplete(String query) {
 		// JSON 요청 본문 생성
@@ -53,7 +62,7 @@ public class SearchService {
 		HttpEntity<String> requestEntity = new HttpEntity<>(requestJson, headers);
 
 		// Elasticsearch에 POST 요청
-		String response = restTemplate.postForObject(ELASTICSEARCH_URL + "/ngram_index/_search", requestEntity, String.class);
+		String response = restTemplate.postForObject(NGRAM_URL, requestEntity, String.class);
 
 		// 결과 파싱 및 변환
 		return parseResponse(response);
