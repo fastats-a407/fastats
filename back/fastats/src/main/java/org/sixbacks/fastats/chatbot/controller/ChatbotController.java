@@ -77,7 +77,7 @@ public class ChatbotController {
 		new Thread(() -> {
 			try {
 				chatClient.prompt()
-					.user(chatMessageDTO.getMessage())
+					.user(chatMessageDTO.getMessage()+ "와 관련된 검색어만 4개를 줘")
 					.stream()
 					.content()
 					.subscribe(
