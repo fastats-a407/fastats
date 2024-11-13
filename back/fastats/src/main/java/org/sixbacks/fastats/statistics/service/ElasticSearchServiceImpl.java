@@ -433,30 +433,28 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		searchSourceBuilder.query(boolQuery);
 		searchRequest.source(searchSourceBuilder);
 
+		SearchResponse searchResponse = null;
+
 		try {
 			// 검색 요청 실행
-			SearchResponse searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
-
-			log.info("총 {} 개의 데이터가 조회되었습니다.", searchResponse.getHits().getTotalHits());
-
-			Set<String> uniqueSuggestions = new LinkedHashSet<>(); // 순서를 유지하면서 중복 제거
-
-			for (SearchHit hit : searchResponse.getHits()) {
-				String suggestion = hit.getSourceAsMap().get("statSurveyName").toString();
-				uniqueSuggestions.add(suggestion);
-
-				// 상위 5개까지만 수집 후 중단
-				if (uniqueSuggestions.size() >= 5) {
-					break;
-				}
-			}
-
-			// Set을 List로 변환하여 상위 5개의 결과 리스트 생성
-			suggestions = new ArrayList<>(uniqueSuggestions);
-
+			searchResponse = restHighLevelClient.search(searchRequest, RequestOptions.DEFAULT);
 		} catch (IOException e) {
-			log.error("Failed to fetch suggestions from Elasticsearch: {}", e.getMessage());
+			throw new CustomException(ErrorCode.SERVER_INTERNAL_ERROR);
 		}
+
+		Set<String> uniqueSuggestions = new LinkedHashSet<>(); // 순서를 유지하면서 중복 제거
+
+		for (SearchHit hit : searchResponse.getHits()) {
+			String suggestion = hit.getSourceAsMap().get("statSurveyName").toString();
+			uniqueSuggestions.add(suggestion);
+			// 상위 5개까지만 수집 후 중단
+			if (uniqueSuggestions.size() >= 5) {
+				break;
+			}
+		}
+
+		// Set을 List로 변환하여 상위 5개의 결과 리스트 생성
+		suggestions = new ArrayList<>(uniqueSuggestions);
 
 		return suggestions;
 	}
