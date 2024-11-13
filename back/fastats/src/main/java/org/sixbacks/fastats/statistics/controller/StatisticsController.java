@@ -1,8 +1,12 @@
 package org.sixbacks.fastats.statistics.controller;
 
+import java.util.List;
+
 import org.sixbacks.fastats.global.response.ApiResponse;
+import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
+import org.sixbacks.fastats.statistics.dto.response.StatTablePageResponse;
 import org.sixbacks.fastats.statistics.service.CollInfoService;
 import org.sixbacks.fastats.statistics.service.ElasticSearchService;
 import org.sixbacks.fastats.statistics.service.SectorService;
@@ -46,16 +50,22 @@ public class StatisticsController {
 		TODO: ES Document 재작성 완료 후 ctg 관련 로직 작업 필요
 	 */
 	@GetMapping("")
-	public ResponseEntity<ApiResponse<Page<StatTableListResponse>>> getStatTableList(@RequestParam String keyword,
-		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam String ctg) {
+	public ResponseEntity<ApiResponse<StatTablePageResponse>> getStatTableList(@RequestParam String keyword,
+		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam String ctg,
+		@RequestParam String ctgContent) {
 
 		// size가 비어 있으면 위 RequestParam에서 10으로 설정되나, 유저가 옳지 않은 값 입력 시 size 제한
 		if (size != 10 && size != 20 && size != 30) {
 			size = 10;
 		}
 
-		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(keyword, page, size);
-		ApiResponse<Page<StatTableListResponse>> response = ApiResponse.success("검색이 성공했습니다.", pages);
+		SearchCriteria searchCriteria = new SearchCriteria(keyword, page, size, ctg, ctgContent);
+
+		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(searchCriteria);
+		StatTablePageResponse statTablePage = new StatTablePageResponse(pages.getContent(), pages.getSize(),
+			pages.getTotalPages());
+
+		ApiResponse<StatTablePageResponse> response = ApiResponse.success("검색이 성공했습니다.", statTablePage);
 
 		return ResponseEntity.ok(response);
 	}
@@ -74,14 +84,21 @@ public class StatisticsController {
 		NOTE: 현재 generic을 ?로 설정했으므로 기능 코드 선제 작성 가능
 	 */
 	@GetMapping("/suggestions")
-	public ResponseEntity<ApiResponse<?>> getKeywordSuggestions(@RequestParam String keyword) {
-		return null;
+	public ResponseEntity<ApiResponse<List<String>>> getKeywordSuggestions(@RequestParam String keyword) {
+		List<String> response = elasticSearchService.getSuggestions(keyword);
+		return ResponseEntity.ok(ApiResponse.success("유사 검색어 반환에 성공했습니다.", response));
 	}
 
 	@PostMapping("/elastic")
 	public ResponseEntity<ApiResponse<Void>> saveData() {
 		elasticSearchService.saveDataWithBulkThroughMultiThreads();
 		return ResponseEntity.ok(ApiResponse.success("Elastic Search 데이터 적재를 성공했습니다.", null));
+	}
+
+	@PostMapping("/ngram")
+	public ResponseEntity<ApiResponse<Void>> saveNgramData() {
+		elasticSearchService.saveDataNgramWithBulkThroughMultiThreads();
+		return ResponseEntity.ok(ApiResponse.success("Elastic Search Ngram 데이터 적재를 성공했습니다.", null));
 	}
 
 }

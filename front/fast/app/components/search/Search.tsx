@@ -2,10 +2,9 @@
 import { FocusEventHandler, MouseEventHandler, useEffect, useState } from 'react';
 import SearchBox from './SearchBox';
 import SearchResults from './SearchResults';
-import { SuggestionKeyword } from '@/app/components/type'
-import { useSearch } from '../lib/Search'
-import { fetchCountries } from '../lib/countries';
-import { useDebouncedState } from '../lib/useDebouncedState';
+import { SuggestionKeyword } from '@/app/lib/type'
+import {fetchAutoComplete} from '../../lib/Search'
+import { useDebouncedState } from '../../lib/useDebouncedState';
 
 export default function Search() {
     const [query, setQuery] = useState<string>('');
@@ -14,25 +13,12 @@ export default function Search() {
     const [searching, setSearching] = useState<boolean>(false);
     const [isHidden, setIsHidden] = useState<boolean>(true);
     const [liOver, setLiOver] = useState<boolean>(false);
-
     useEffect(() => {
         setSearching(true);
-        fetchCountries(debouncedQuery).then((statistics) => {
-            setStatistics(statistics.slice(0, 5))
-            setSearching(false)
+        fetchAutoComplete(debouncedQuery).then(statistics =>{
+            setStatistics(statistics);
+            setSearching(false);
         })
-        // useSearch().then(() => {
-        //     setSearching(false)
-        //     setStatistics([
-        //         { id: "1", keyword: "first" },
-        //         { id: "2", keyword: "second" },
-        //         { id: "3", keyword: "third" },
-        //         { id: "4", keyword: "네번째" },
-        //         { id: "5", keyword: "다섯번째" },
-        //         { id: "6", keyword: "여섯번째" },
-        //     ])
-
-        // });
     }, [debouncedQuery]);
 
     const onFocusIn: FocusEventHandler<HTMLInputElement> = (e) => {
