@@ -86,13 +86,19 @@ public class StatisticsController {
 	@GetMapping("/suggestions")
 	public ResponseEntity<ApiResponse<List<String>>> getKeywordSuggestions(@RequestParam String keyword) {
 		List<String> response = elasticSearchService.getSuggestions(keyword);
-		return ResponseEntity.ok(ApiResponse.success("유사 검색어 반환에 성공했습니다.",response));
+		return ResponseEntity.ok(ApiResponse.success("유사 검색어 반환에 성공했습니다.", response));
 	}
 
 	@PostMapping("/elastic")
 	public ResponseEntity<ApiResponse<Void>> saveData() {
 		elasticSearchService.saveDataWithBulkThroughMultiThreads();
 		return ResponseEntity.ok(ApiResponse.success("Elastic Search 데이터 적재를 성공했습니다.", null));
+	}
+
+	@PostMapping("/ngram")
+	public ResponseEntity<ApiResponse<Void>> saveNgramData() {
+		elasticSearchService.saveDataNgramWithBulkThroughMultiThreads();
+		return ResponseEntity.ok(ApiResponse.success("Elastic Search Ngram 데이터 적재를 성공했습니다.", null));
 	}
 
 }
