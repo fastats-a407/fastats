@@ -108,7 +108,7 @@ public class StatisticsControllerTest {
 
 		TableByDto byThemeDto = new TableByDto("인구", 3);
 		TableByDto bySurveyDto = new TableByDto("인구총조사", 5);
-		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto));
+		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto), 3, 5);
 
 		when(elasticSearchService.getCategoriesByKeyword(keyword)).thenReturn(mockContent);
 
@@ -133,7 +133,7 @@ public class StatisticsControllerTest {
 
 		TableByDto byThemeDto = new TableByDto("인구", 3);
 		TableByDto bySurveyDto = new TableByDto("인구총조사", 5);
-		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto));
+		CategoryListResponse mockContent = new CategoryListResponse(List.of(byThemeDto), List.of(bySurveyDto), 3, 5);
 
 		when(elasticSearchService.getCategoriesByKeyword(keyword)).thenReturn(mockContent);
 

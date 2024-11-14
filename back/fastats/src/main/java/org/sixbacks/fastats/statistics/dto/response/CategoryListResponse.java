@@ -11,5 +11,7 @@ public class CategoryListResponse {
 
 	List<TableByDto> byTheme;
 	List<TableByDto> bySurvey;
+	int byThemeCount;
+	int bySurveyCount;
 
 }
