@@ -1,11 +1,11 @@
 'use client'
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import RelatedKeywords from "@/app/components/RelatedKeywords";
 import { useEffect, useState } from "react";
-import { fetchRelatedKeywords, fetchStats } from "@/app/lib/Search";
-import { SearchParams, SurveyData } from "@/app/lib/type";
+import { fetchCategories, fetchRelatedKeywords, fetchStats } from "@/app/lib/Search";
+import { SearchCategory, SearchParams, SurveyData } from "@/app/lib/type";
 
 export default function KeywordPage() {
   const params = useParams();
@@ -18,7 +18,14 @@ export default function KeywordPage() {
   const [pageSize, setPageSize] = useState(20);
   const [statistics, setStatistics] = useState<SurveyData[]>([])
   const [keywords, setKeywords] = useState<string[]>([])
-    const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+
+  const [categoriesByTheme, setCategoriesByTheme] = useState<SearchCategory[]>([]);
+  const [categoriesBySurvey, setCategoriesBySurvey] = useState<SearchCategory[]>([]);
+  const [totalByTheme, setTotalByTheme] = useState(0);
+  const [totalBySurvey, setTotalBySurvey] = useState(0);
+  const [totalResult, setTotalResult] = useState("");
+
 
   const toggleExpand = (section: string) => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -42,62 +49,95 @@ export default function KeywordPage() {
       .catch((err) => {
         console.log("검색 실패 ", err)
       });
+
+
     fetchRelatedKeywords(decodedKeyword)
       .then((result) => {
         setKeywords(result)
+      });
+
+
+    fetchCategories(decodedKeyword)
+      .then((result) => {
+        setCategoriesBySurvey(result.bySurvey);
+        setCategoriesByTheme(result.byTheme);
       })
+
+
+
   }, [params.keyword])
 
-    const searchResults = [
-        { title: "1사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "2사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "3사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "4사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
-        { title: "5시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
-        { title: "6사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "7사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "8사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "9사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
-        { title: "0시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
-        { title: "1사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "2사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "3사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "4사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
-        { title: "5시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
-        { title: "6사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "7사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "8사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
-        { title: "9사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
-        { title: "0시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
-        // ... 다른 데이터 추가
-    ];
+  useEffect(() => {
+    let num = 0;
+    categoriesBySurvey.forEach((category) => {
+      num += category.count;
+    })
+    setTotalBySurvey(num)
+  }, [categoriesBySurvey])
 
-    const categories = [
-        "가스사고통계(2)",
-        "강원도강릉시기본통계(1)",
-        "강원도고성군기본통계(1)",
-        "강원도동해시기본통계(1)",
-        "강원도삼척시기본통계(1)",
-        "강원도양구군기본통계(1)",
-        "강원도양양군기본통계(1)",
-        "강원도영월군기본통계(1)",
-        "강원도원주시기본통계(1)",
-        "강원도태백시기본통계(1)",
-        "강원도고성군기본통계(1)",
-        "강원도동해시기본통계(1)",
-        "강원도삼척시기본통계(1)",
-        "강원도양구군기본통계(1)",
-        "강원도양양군기본통계(1)",
-        "강원도영월군기본통계(1)",
-        "강원도원주시기본통계(1)",
-        "강원도태백시기본통계(1)",
-        // 추가 항목...
-    ];
+  useEffect(() => {
+    let num = 0;
+    categoriesByTheme.forEach((category) => {
+      num += category.count;
+    })
+    setTotalByTheme(num)
+  }, [categoriesByTheme])
+
+  useEffect(() => {
+    let result = Intl.NumberFormat('ko-KR').format(totalBySurvey > totalByTheme ? totalBySurvey : totalByTheme)
+    setTotalResult(result);
+  }, [totalBySurvey, totalByTheme])
+
+  const searchResults = [
+    { title: "1사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "2사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "3사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "4사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
+    { title: "5시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
+    { title: "6사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "7사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "8사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "9사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
+    { title: "0시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
+    { title: "1사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "2사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "3사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "4사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
+    { title: "5시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
+    { title: "6사망원인(104항목)/성/교육정도별 (15~64세) 사망자수", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "7사망원인(104항목)/성/시도별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "8사망원인(104항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1983~2023" },
+    { title: "9사망원인(237항목)/성/연령(5세)별 사망자수, 사망률", source: "통계청, 사망원인통계, 1995~2023" },
+    { title: "0시군구/사망원인(50항목)/성/사망자수, 사망률, 연령표준화 사망률(1998~)", source: "통계청, 사망원인통계, 1998~2023" },
+    // ... 다른 데이터 추가
+  ];
+
+  const categories = [
+    "가스사고통계(2)",
+    "강원도강릉시기본통계(1)",
+    "강원도고성군기본통계(1)",
+    "강원도동해시기본통계(1)",
+    "강원도삼척시기본통계(1)",
+    "강원도양구군기본통계(1)",
+    "강원도양양군기본통계(1)",
+    "강원도영월군기본통계(1)",
+    "강원도원주시기본통계(1)",
+    "강원도태백시기본통계(1)",
+    "강원도고성군기본통계(1)",
+    "강원도동해시기본통계(1)",
+    "강원도삼척시기본통계(1)",
+    "강원도양구군기본통계(1)",
+    "강원도양양군기본통계(1)",
+    "강원도영월군기본통계(1)",
+    "강원도원주시기본통계(1)",
+    "강원도태백시기본통계(1)",
+    // 추가 항목...
+  ];
   return (
     <>
       <Header keyword={decodedKeyword} />
       <RelatedKeywords keywords={keywords} />
-      <div className="result-count"><b>"{decodedKeyword}"</b>에 대한 검색 결과는 <b>00,000건</b>입니다.</div>
+      <div className="result-count"><b>"{decodedKeyword}"</b>에 대한 검색 결과는 <b>{totalResult}건</b>입니다.</div>
       <div className="result-body">
         <div className="upper-bar">
           <div className="select-stats">
@@ -124,13 +164,13 @@ export default function KeywordPage() {
         <div className="left">
           <div className="accordion-item">
             <button className="accordion-header" onClick={() => toggleExpand("주제별")}>
-              주제별(355)
+              주제별({totalByTheme})
             </button>
             <div className={`accordion-content ${expandedSection === "주제별" ? "expanded" : ""}`}>
               <ul className="category-list">
-                {categories.map((item, index) => (
+                {categoriesByTheme.map((item, index) => (
                   <li key={index} className="category-item">
-                    {item}
+                    {item.name}({item.count})
                   </li>
                 ))}
               </ul>
@@ -138,13 +178,13 @@ export default function KeywordPage() {
           </div>
           <div className="accordion-item">
             <button className="accordion-header" onClick={() => toggleExpand("통계별")}>
-              통계별(355)
+              통계별({totalBySurvey})
             </button>
             <div className={`accordion-content ${expandedSection === "통계별" ? "expanded" : ""}`}>
               <ul className="category-list">
-                {categories.map((item, index) => (
+                {categoriesBySurvey.map((item, index) => (
                   <li key={index} className="category-item">
-                    {item}
+                    {item.name}({item.count})
                   </li>
                 ))}
               </ul>
