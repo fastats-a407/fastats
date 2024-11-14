@@ -13,6 +13,11 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+.gitignore
+.env
+elasticsearch-cert.crt
+back/fastats/src/main/resources/elasticsearch/
+
 
 # External tool builders
 .externalToolBuilders/

@@ -4,21 +4,15 @@ pipeline {
     environment {
         ENV = credentials('env')
         APP_DEV = credentials('application-dev')
-        KIBANA = credentials('kibana')
         DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials')
+        NGRAM_ANALYZER = credentials('ngram_analyzer')
+        NORI_SETTINGS = credentials('nori-settings')
+        NGRAM_SETTINGS = credentials('ngram-settings')
+        HTTP_P12 = credentials('ea5d7380-c352-4001-8221-1f9e42b43bac')
+        ELASTICSEARCH_CERT = credentials('elasticsearch-cert')    
     }
 
     stages {
-
-        stage('Lightsail Server Stage') {
-            steps {
-                // sshagent 블록을 사용해 SSH 자격 증명을 가져옴
-                sshagent(credentials: ['lightsail-ssh-credential-id']) {
-                    // SSH 접속을 위한 작업 실행
-                    sh 'ssh -o StrictHostKeyChecking=no ubuntu@3.35.47.24 "echo Connected to Lightsail"'
-                }
-            }
-        }
 
         stage('Prepare Git Info') {
             steps {
@@ -29,6 +23,7 @@ pipeline {
                 }
             }
         }
+
         stage('Checkout Code') {
             steps {
                 sh 'echo "Checking out code from develop branch..."'
@@ -39,36 +34,78 @@ pipeline {
             }
         }
 
-        stage('Prepare Application Development') {
+        stage('Prepare application-dev.yml') {
             steps {
                 sh 'echo "Preparing application-dev.yml..."'
-                sh 'mkdir -p back/fastats/src/main/resources'
+                sh 'mkdir -p back/fastats/src/main/resources/elasticsearch/settings'
                 sh 'cp $APP_DEV back/fastats/src/main/resources/application-dev.yml'
+            }
+        }
+
+        stage('Prepare ngram_analyzer.json') {
+            steps {
+                sh 'echo "Preparing ngram_analyzer.json..."'
+                sh 'cp $NGRAM_ANALYZER back/fastats/src/main/resources/ngram_analyzer.json'
+            }
+        }
+
+        stage('Prepare nori-settings.json') {
+            steps {
+                sh 'echo "Preparing nori-settings.json..."'
+                sh 'cp $NORI_SETTINGS back/fastats/src/main/resources/elasticsearch/settings/nori-settings.json'
+            }
+        }
+
+        stage('Prepare ngram-settings.json') {
+            steps {
+                sh 'echo "Preparing ngram-settings.json..."'
+                sh 'cp $NGRAM_SETTINGS back/fastats/src/main/resources/elasticsearch/settings/ngram-settings.json'
             }
         }
 
         stage('Prepare ENV') {
             steps {
                 sh 'echo "Writing .env file..."'
-                dir('infra') {
+                dir('back/fastats/src/main/resources') {
                     writeFile file: '.env', text: env.ENV
                 }
             }
         }
 
-        stage('Prepare KIBANA') {
+        // HTTP_P12 파일 준비
+        stage('Prepare HTTP_P12 Certificate') {
             steps {
-                sh 'echo "Writing kibana.yml file..."'
-                dir('infra') {
-                    writeFile file: 'kibana.yml', text: env.KIBANA
+                sh 'echo "Preparing http.p12 certificate..."'
+                dir('back/fastats/src/main/resources/elasticsearch') {
+                    writeFile file: 'http.p12', text: env.HTTP_P12
                 }
             }
         }
 
+        // Elasticsearch 인증서 파일 준비
+        stage('Prepare Elasticsearch Certificate') {
+            steps {
+                sh 'echo "Preparing elasticsearch-cert.crt..."'
+                dir('back/fastats') {
+                    writeFile file: 'elasticsearch-cert.crt', text: env.ELASTICSEARCH_CERT
+                }
+            }
+        }
+
+        // 버전 태그 생성 (예: 1.0-build-42)
+        def versionTag = "1.0-build-${env.BUILD_NUMBER}"
+        
         stage('Build Backend') {
             steps {
                 dir('back/fastats') {
-                    sh 'docker build -t thundercloud3/fastats:latest -f Dockerfile .'
+                    script {
+                        
+                        // Docker 이미지 빌드
+                        sh "docker build -t thundercloud3/fastats:${versionTag} -f Dockerfile ."
+                        
+                        // 최신 태그도 함께 지정
+                        sh "docker tag thundercloud3/fastats:${versionTag} thundercloud3/fastats:latest"
+                    }
                 }
             }
         }
@@ -79,35 +116,35 @@ pipeline {
                     // Docker Hub 로그인
                     sh 'docker login -u "$DOCKER_HUB_CREDENTIALS_USR" -p "$DOCKER_HUB_CREDENTIALS_PSW"'
                     // Docker Hub 이미지 푸시
-                    sh 'docker push thundercloud3/fastats:latest'
+                    sh "docker push thundercloud3/fastats:${versionTag}"
                 }
             }
         }
 
-        // stage('Build Frontend'){
+        stage('Build Frontend'){
+            steps {
+                script {
+                    dir('front/fast'){
+                        // Docker 이미지 빌드
+                        sh "docker build -t thundercloud3/front:${versionTag} -f Dockerfile ."
 
-        // }
+                        // 최신 태그도 함께 지정
+                        sh "docker tag thundercloud3/front:${versionTag} thundercloud3/fastats:latest"
+                    }
+                }
+            }
+        }
 
-        // stage('Push Frontend to Docker Hub') {
-        
-        // }
-
-        // stage('Build Python') {
-
-        // }
-
-        // stage('Push Python to Docker Hub') {
-        
-        // }
-
-        // stage('Test') {
-        //     steps {
-        //         // 테스트 명령어 실행
-        //         sh './gradlew test'  // 예제: 테스트 명령어
-        //     }
-        // }
-        
+        stage('Push Frontend to Docker Hub') {
+            steps {
+                script {
+                    // Docker Hub 이미지 푸시
+                    sh "docker push thundercloud3/front:${versionTag}"
+                }
+            }
+        }
     }
+
     post {
         always {
             // 빌드가 끝난 후 항상 실행되는 단계 (예: 로그 정리, 알림 전송 등)
@@ -136,3 +173,4 @@ pipeline {
         }
     }
 }
+
