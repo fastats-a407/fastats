@@ -1,3 +1,7 @@
+@import url(//spoqa.github.io/spoqa-han-sans/css/SpoqaHanSansNeo.css);
+
+* { font-family: 'Spoqa Han Sans Neo', 'sans-serif'; }
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -190,17 +194,146 @@ select{
   display: flex;
   width: 80%;
   height: 65vh;
-  background-color: aqua;
+  background-color: rgb(227, 227, 227);
   justify-content: space-between;
 }
-.left{
+
+
+/* 왼쪽 */
+.left {
   min-width: 100px;
   width: 20%;
-  background-color: aquamarine;
+  background-color: #f0f8ff;
+  border: 1px solid #ddd;
+  /* border-radius: 8px; */
+  overflow: hidden;
 }
 
+.accordion-item {
+  border-bottom: 1px solid #ddd;
+}
+
+.accordion-header {
+  width: 100%;
+  padding: 10px;
+  font-weight: bold;
+  background-color: #aceaff;
+  color: white;
+  text-align: left;
+  border: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.accordion-content {
+  height: 0;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  background-color: #e0f7fa;
+}
+
+.accordion-content.expanded {
+  /* height: auto; */
+  height: auto;
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.category-item:hover {
+  background-color: #bde0fe;
+}
+
+/* 스크롤바 스타일 */
+.accordion-content.expanded::-webkit-scrollbar {
+  width: 8px;
+}
+
+.accordion-content.expanded::-webkit-scrollbar-track {
+  background: #f0f0f0;
+}
+
+.accordion-content.expanded::-webkit-scrollbar-thumb {
+  background-color: #999;
+  border-radius: 4px;
+}
+
+
+
+
+
+
+/*  검색 결과 */
 .right{
   min-width: 500px;
   width: 78%;
-  background-color: blue;
+  background-color: white;
+  max-height: 100%; /* 부모 컨테이너의 높이에 맞춤 */
+  overflow-y: auto; /* 스크롤 활성화 */
+  padding: 20px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  /* border-radius: 8px; */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 커스텀 스크롤바 스타일 */
+.right::-webkit-scrollbar {
+  width: 8px;
+}
+
+.right::-webkit-scrollbar-track {
+  background: #e0e0e0; /* 스크롤바 배경 */
+  border-radius: 8px;
+}
+
+.right::-webkit-scrollbar-thumb {
+  background-color: #888; /* 스크롤바 색상 */
+  border-radius: 8px;
+  border: 2px solid #e0e0e0; /* 스크롤바와 트랙 사이 여백 */
+}
+
+.right::-webkit-scrollbar-thumb:hover {
+  background-color: #555; /* 호버 시 스크롤바 색상 */
+}
+
+
+.search-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+  padding: 10px;
+  background-color: #fff;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s;
+}
+
+.search-title {
+  display: block;
+  white-space: nowrap;      /* 텍스트를 한 줄로 유지 */
+  overflow: hidden;         /* 넘치는 텍스트를 숨김 */
+  text-overflow: ellipsis;  /* 넘친 부분에 '...' 표시 */
+  max-width: 100%;          /* 부모 요소 너비에 맞게 조정 */
+}
+
+.search-source {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
