@@ -52,7 +52,7 @@ pipeline {
         stage('Prepare nori-settings.json') {
             steps {
                 sh 'echo "Preparing nori-settings.json..."'
-                sh 'cp $NORI_SETTINGS back/fastats/src/main/resources/nori-settings.json'
+                sh 'cp $NORI_SETTINGS back/fastats/src/main/resources/elasticsearch/settings/nori-settings.json'
             }
         }
 
