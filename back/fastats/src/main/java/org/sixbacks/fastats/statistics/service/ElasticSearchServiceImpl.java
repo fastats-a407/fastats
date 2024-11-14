@@ -395,6 +395,9 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.addFieldWithBoost("statTableContent", 1.2f)
 			.addFieldWithBoost("statTableComment", 1.2f)
 			.withAnalyzer("fastats_nori")
+			.addAggregationField("sectorName")
+			.addAggregationField("statSurveyName")
+			.queryType(TextQueryType.MostFields)
 			.build();
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
@@ -412,20 +415,32 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 		Map<String, List<TableByDto>> tableByMap = new HashMap<>();
 
+		System.out.println(searchHits.getTotalHits());
+
 		if (searchHits.hasAggregations()) {
 
 			// 인터페이스 AggregationsContainer 대신 구현체인 ElasticsearchAggregation 이용해 집계 결과 획득
-			ElasticsearchAggregations aggregationResults = (ElasticsearchAggregations)searchHits.getAggregations();
+			ElasticsearchAggregations aggregationResults = (ElasticsearchAggregations)(searchHits.getAggregations());
 			assert aggregationResults != null;
-			aggrList.forEach(aggr -> {
-				ElasticsearchAggregation elasticsearchAggregation = aggregationResults.get(aggr);
-				// 구현된 검색 로직 상 StringTermsAggregate의 형태로 이용해야 함
-				StringTermsAggregate aggregate = elasticsearchAggregation.aggregation().getAggregate().sterms();
-				List<TableByDto> tableByDtoList = bucketToDtoList(aggregate.buckets().array());
-				System.out.println(tableByDtoList);
 
-				tableByMap.put(aggr, tableByDtoList);
+			aggregationResults.aggregationsAsMap().entrySet().forEach(entry -> {
+				String aggr = entry.getKey();  // Aggregation 이름
+				ElasticsearchAggregation elasticsearchAggregation = entry.getValue();
+
+				if (elasticsearchAggregation != null) {
+					// StringTermsAggregate로 변환
+					StringTermsAggregate aggregate = elasticsearchAggregation.aggregation().getAggregate().sterms();
+
+					if (aggregate != null) {
+						// 각 버킷을 TableByDto로 변환
+						List<TableByDto> tableByDtoList = bucketToDtoList(aggregate.buckets().array());
+
+						// 결과를 Map에 추가
+						tableByMap.put(aggr, tableByDtoList);
+					}
+				}
 			});
+
 		}
 
 		return tableByMapToCategoryListDto(tableByMap);
@@ -456,7 +471,15 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			}
 		}
 
-		return new CategoryListResponse(byTheme, bySurvey);
+		assert byTheme != null && bySurvey != null;
+		int byThemeCount = byTheme.stream()
+			.mapToInt(TableByDto::getCount)
+			.sum();
+		int bySurveyCount = bySurvey.stream()
+			.mapToInt(TableByDto::getCount)
+			.sum();
+
+		return new CategoryListResponse(byTheme, bySurvey, byThemeCount, bySurveyCount);
 	}
 
 	/*
