@@ -31,15 +31,8 @@ export default function KeywordPage() {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
-  useEffect(() => {
-    const newSearchKeyword: SearchParams = {
-      page: curPage,
-      keyword: decodedKeyword,
-      size: pageSize,
-      ctg: "",
-      ctgContent: "",
-    }
-    fetchStats(newSearchKeyword)
+  const search = (params: SearchParams) => {
+    fetchStats(params)
       .then((result) => {
         setTotalPages(result.totalPages)
         setPageSize(result.size)
@@ -49,7 +42,19 @@ export default function KeywordPage() {
       .catch((err) => {
         console.log("검색 실패 ", err)
       });
+  }
 
+
+  useEffect(() => {
+    const newSearchKeyword: SearchParams = {
+      page: curPage,
+      keyword: decodedKeyword,
+      size: pageSize,
+      ctg: "",
+      ctgContent: "",
+    }
+
+    search(newSearchKeyword);
 
     fetchRelatedKeywords(decodedKeyword)
       .then((result) => {
@@ -62,9 +67,6 @@ export default function KeywordPage() {
         setCategoriesBySurvey(result.bySurvey);
         setCategoriesByTheme(result.byTheme);
       })
-
-
-
   }, [params.keyword])
 
   useEffect(() => {
@@ -88,6 +90,41 @@ export default function KeywordPage() {
     setTotalResult(result);
   }, [totalBySurvey, totalByTheme])
 
+  // 페이지 이동
+
+  // 정렬 순서 변경
+
+  // 페이지 크기 변경
+  const handleChangePageSize = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPageSize = parseInt(event.target.value, 10);
+    const newSearchKeyword: SearchParams = {
+      page: 0,
+      keyword: decodedKeyword,
+      size: newPageSize,
+      ctg: "",
+      ctgContent: "",
+    }
+
+    search(newSearchKeyword)
+    setPageSize(newPageSize);
+    setCurPage(0); // 초기 페이지로 이동
+  };
+
+
+  // 주제, 혹은 설문 선택
+  const handleClickFilter = (type: string, name: string) => {
+    const newSearchKeyword: SearchParams = {
+      page: 0,
+      keyword: decodedKeyword,
+      size: pageSize,
+      ctg: type,
+      ctgContent: name,
+    };
+    search(newSearchKeyword);
+
+    setCurPage(0)// 초기 페이지로 이동
+  }
+
   return (
     <>
       <Header keyword={decodedKeyword} />
@@ -106,7 +143,7 @@ export default function KeywordPage() {
               </select>
             </div>
             <div>
-              <select name="통계" defaultValue={pageSize}>
+              <select name="통계" defaultValue={pageSize} onChange={handleChangePageSize}>
                 <option value="10">10</option>
                 <option value="20">20</option>
                 <option value="30">30</option>
@@ -124,7 +161,7 @@ export default function KeywordPage() {
             <div className={`accordion-content ${expandedSection === "주제별" ? "expanded" : ""}`}>
               <ul className="category-list">
                 {categoriesByTheme.map((item, index) => (
-                  <li key={index} className="category-item">
+                  <li key={index} className="category-item" onClick={() => { handleClickFilter("sectorName", item.name) }}>
                     {item.name}({item.count})
                   </li>
                 ))}
@@ -138,7 +175,7 @@ export default function KeywordPage() {
             <div className={`accordion-content ${expandedSection === "통계별" ? "expanded" : ""}`}>
               <ul className="category-list">
                 {categoriesBySurvey.map((item, index) => (
-                  <li key={index} className="category-item">
+                  <li key={index} className="category-item" onClick={() => { handleClickFilter("statSurveyName", item.name) }}>
                     {item.name}({item.count})
                   </li>
                 ))}
@@ -167,8 +204,8 @@ export default function KeywordPage() {
                 </a>
               ) : (
                 <div className="search-source">
-                    {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate.substring(0, 4)}~{result.collEndDate.substring(0, 4)}
-                    {/* {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate}~{result.collEndDate}                 */}
+                  {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate.substring(0, 4)}~{result.collEndDate.substring(0, 4)}
+                  {/* {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate}~{result.collEndDate}                 */}
                 </div>
               )}
             </div>
