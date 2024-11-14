@@ -13,9 +13,6 @@ local.properties
 .settings/
 .loadpath
 .recommenders
-.env
-elasticsearch-cert.crt
-back/fastats/src/main/resources/elasticsearch/
 
 
 # External tool builders
