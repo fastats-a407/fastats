@@ -19,6 +19,8 @@ export default function KeywordPage() {
   const [statistics, setStatistics] = useState<SurveyData[]>([])
   const [keywords, setKeywords] = useState<string[]>([])
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [ctgType, setCtgType] =useState<string | "">("");
+  const [ctgName, setCtgName] =useState<string | "">("");
 
   const [categoriesByTheme, setCategoriesByTheme] = useState<SearchCategory[]>([]);
   const [categoriesBySurvey, setCategoriesBySurvey] = useState<SearchCategory[]>([]);
@@ -26,8 +28,23 @@ export default function KeywordPage() {
   const [totalBySurvey, setTotalBySurvey] = useState(0);
   const [totalResult, setTotalResult] = useState("");
 
+  const pagenationSize = 10;
+  const currentRangeStart = Math.floor(curPage / pagenationSize) * pagenationSize;
+  const currentRangeEnd = Math.min(currentRangeStart + pagenationSize, totalPages);
 
   const toggleExpand = (section: string) => {
+    setCtgName("");
+    setCtgType("");
+    const newSearchKeyword: SearchParams = {
+      page: 0,
+      keyword: decodedKeyword,
+      size: pageSize,
+      ctg: "",
+      ctgContent: "",
+    };
+    search(newSearchKeyword);
+    setCurPage(0);
+    
     setExpandedSection(expandedSection === section ? null : section);
   };
 
@@ -101,8 +118,8 @@ export default function KeywordPage() {
       page: 0,
       keyword: decodedKeyword,
       size: newPageSize,
-      ctg: "",
-      ctgContent: "",
+      ctg: ctgType,
+      ctgContent: ctgName,
     }
 
     search(newSearchKeyword)
@@ -122,8 +139,25 @@ export default function KeywordPage() {
     };
     search(newSearchKeyword);
 
+    setCtgType(type);
+    setCtgName(name);
     setCurPage(0)// 초기 페이지로 이동
   }
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      const newSearchKeyword: SearchParams = {
+        page: newPage,
+        keyword: decodedKeyword,
+        size: pageSize,
+        ctg: ctgType,
+        ctgContent: ctgName,
+      };
+
+      search(newSearchKeyword);
+      setCurPage(newPage);
+    }
+  };
 
   return (
     <>
@@ -213,8 +247,49 @@ export default function KeywordPage() {
           {/* 여기는 좌와 우만 남기고 데이터 들어오면 바꿀 것 */}
         </div>
       </div>
-      <div>
+      <div className="pagenation-space">
+        <div className="pagenation">
+          <button
+            onClick={() => handlePageChange(0)}
+            disabled={curPage === 0}
+          >
+            {"<<"}
+          </button>
 
+          <button
+            onClick={() => handlePageChange(currentRangeStart - pagenationSize)}
+            disabled={currentRangeStart === 0}
+          >
+            {"<"}
+          </button>
+
+          {Array.from({ length: currentRangeEnd - currentRangeStart }, (_, i) => {
+            const pageNumber = currentRangeStart + i;
+            return (
+              <button
+                key={pageNumber}
+                onClick={() => handlePageChange(pageNumber)}
+                className={pageNumber === curPage ? "active" : ""}
+              >
+                {pageNumber + 1}
+              </button>
+            );
+          })}
+
+          <button
+            onClick={() => handlePageChange(currentRangeStart + pagenationSize)}
+            disabled={currentRangeEnd >= totalPages}
+          >
+            {">"}
+          </button>
+
+          <button
+            onClick={() => handlePageChange(totalPages - 1)}
+            disabled={curPage === totalPages - 1}
+          >
+            {">>"}
+          </button>
+        </div>
       </div>
     </>
   );
