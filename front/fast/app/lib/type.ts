@@ -40,6 +40,16 @@ export interface SearchResponse {
     totalPages: number;
 }
 
+// 6. 카테고리 검색 결과
+export interface SearchCategoryResponse {
+    byTheme: SearchCategory[];
+    bySurvey: SearchCategory[];
+}
+
+export interface SearchCategory {
+    name: string;
+    count: number;
+}
 
 
 export interface ApiResponse {
