@@ -52,14 +52,14 @@ pipeline {
         stage('Prepare nori-settings.json') {
             steps {
                 sh 'echo "Preparing nori-settings.json..."'
-                sh 'cp $NORI_SETTINGS back/fastats/src/main/resources/nori-settings.json'
+                sh 'cp $NORI_SETTINGS back/fastats/src/main/resources/elasticsearch/settings/nori-settings.json'
             }
         }
 
         stage('Prepare ngram-settings.json') {
             steps {
                 sh 'echo "Preparing ngram-settings.json..."'
-                sh 'cp $NGRAM_SETTINGS back/fastats/src/main/resources/ngram-settings.json'
+                sh 'cp $NGRAM_SETTINGS back/fastats/src/main/resources/elasticsearch/settings/ngram-settings.json'
             }
         }
 
@@ -68,6 +68,26 @@ pipeline {
                 sh 'echo "Writing .env file..."'
                 dir('back/fastats/src/main/resources') {
                     writeFile file: '.env', text: env.ENV
+                }
+            }
+        }
+
+        // HTTP_P12 파일 준비
+        stage('Prepare HTTP_P12 Certificate') {
+            steps {
+                sh 'echo "Preparing http.p12 certificate..."'
+                dir('back/fastats/src/main/resources/elasticsearch') {
+                    writeFile file: 'http.p12', text: env.HTTP_P12
+                }
+            }
+        }
+
+        // Elasticsearch 인증서 파일 준비
+        stage('Prepare Elasticsearch Certificate') {
+            steps {
+                sh 'echo "Preparing elasticsearch-cert.crt..."'
+                dir('back/fastats') {
+                    writeFile file: 'elasticsearch-cert.crt', text: env.ELASTICSEARCH_CERT
                 }
             }
         }
@@ -153,3 +173,4 @@ pipeline {
         }
     }
 }
+
