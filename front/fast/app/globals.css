@@ -193,7 +193,7 @@ select{
   margin-top: 1%;
   display: flex;
   width: 80%;
-  height: 65vh;
+  height: 62vh;
   background-color: rgb(227, 227, 227);
   justify-content: space-between;
 }
@@ -235,7 +235,7 @@ select{
 .accordion-content.expanded {
   /* height: auto; */
   height: auto;
-  max-height: 52vh;
+  max-height: 51vh;
   overflow-y: auto;
 }
 
@@ -336,4 +336,48 @@ select{
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+}
+
+/* 아래부터 pagenation */
+
+.pagenation-space{
+  display: flex;
+  justify-content: center;
+  margin-top: 1%;
+}
+
+.pagenation {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.pagenation button {
+  min-width: 36px; /* 버튼의 최소 너비 */
+  height: 36px; /* 버튼의 높이 */
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px; /* 둥근 모서리 */
+  transition: background-color 0.3s, color 0.3s; /* 애니메이션 */
+}
+
+.pagenation button:hover {
+  background-color: #0070f3;
+  color: #fff;
+}
+
+.pagenation .active {
+  background-color: #0070f3;
+  color: #fff;
+  border-color: #0070f3;
+}
+
+.pagenation button:disabled {
+  cursor: not-allowed;
+  background-color: #e0e0e0;
+  color: #999;
 }
