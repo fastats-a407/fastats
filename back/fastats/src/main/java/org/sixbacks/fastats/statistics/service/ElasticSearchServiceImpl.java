@@ -414,9 +414,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 		Map<String, List<TableByDto>> tableByMap = new HashMap<>();
-
-		System.out.println(searchHits.getTotalHits());
-
+		
 		if (searchHits.hasAggregations()) {
 
 			// 인터페이스 AggregationsContainer 대신 구현체인 ElasticsearchAggregation 이용해 집계 결과 획득
