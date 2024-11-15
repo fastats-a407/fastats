@@ -19,8 +19,8 @@ export default function KeywordPage() {
   const [statistics, setStatistics] = useState<SurveyData[]>([])
   const [keywords, setKeywords] = useState<string[]>([])
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [ctgType, setCtgType] =useState<string | "">("");
-  const [ctgName, setCtgName] =useState<string | "">("");
+  const [ctgType, setCtgType] = useState<string | "">("");
+  const [ctgName, setCtgName] = useState<string | "">("");
 
   const [categoriesByTheme, setCategoriesByTheme] = useState<SearchCategory[]>([]);
   const [categoriesBySurvey, setCategoriesBySurvey] = useState<SearchCategory[]>([]);
@@ -44,7 +44,7 @@ export default function KeywordPage() {
     };
     search(newSearchKeyword);
     setCurPage(0);
-    
+
     setExpandedSection(expandedSection === section ? null : section);
   };
 
@@ -231,15 +231,16 @@ export default function KeywordPage() {
               {result.statSurveyInfo.statLink ? (
                 <a href={result.statSurveyInfo.statLink} target="_blank" rel="noopener noreferrer">
                   <div className="search-source">
-                    {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate.substring(0, 4)}~{result.collEndDate.substring(0, 4)}
-                    {/* {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate}~{result.collEndDate} */}
-
+                    {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}
+                    {result.collStartDate ? `, ${result.collStartDate.substring(0, 4)}` : ""}
+                    {result.collEndDate ? `~${result.collEndDate.substring(0, 4)}` : ""}
                   </div>
                 </a>
               ) : (
                 <div className="search-source">
-                  {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate.substring(0, 4)}~{result.collEndDate.substring(0, 4)}
-                  {/* {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}, {result.collStartDate}~{result.collEndDate}                 */}
+                  {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}
+                  {result.collStartDate ? `, ${result.collStartDate.substring(0, 4)}` : ""}
+                  {result.collEndDate ? `~${result.collEndDate.substring(0, 4)}` : ""}
                 </div>
               )}
             </div>
