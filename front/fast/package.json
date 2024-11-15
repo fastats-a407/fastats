@@ -10,7 +10,6 @@
     "docker": "docker build -t thundercloud3/front:test ."
   },
   "dependencies": {
-    "@picocss/pico": "^2.0.6",
     "axios": "^1.7.7",
     "next": "^15.0.3",
     "react": "19.0.0-rc-66855b96-20241106",
