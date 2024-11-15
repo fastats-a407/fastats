@@ -334,7 +334,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					if (StringUtils.isNotBlank(ctg) && StringUtils.isNotBlank(ctgContent)) {
 						b.filter(m -> m
 							.term(t -> t
-								.field(ctg)
+								.field(ctg + ".keyword")
 								.value(ctgContent) // 정확히 일치해야 하는 필드
 							)
 						);
