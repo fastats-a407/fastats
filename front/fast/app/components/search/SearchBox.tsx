@@ -10,7 +10,7 @@ interface SearchBoxProps {
 }
 export default function SearchBox({ value, onChange, onFocus, onBlur, onSubmit}: SearchBoxProps) {
     return (
-        <form role='search' style={{ margin: 0 }} onSubmit={onSubmit}>
+        <form role='search' style={{ margin: 0 }} onSubmit={onSubmit} className='main-search'>
             <input
                 type="search"
                 placeholder="키워드를 입력하세요."
@@ -19,7 +19,7 @@ export default function SearchBox({ value, onChange, onFocus, onBlur, onSubmit}:
                 onFocus={onFocus}
                 onBlur={onBlur}
             />
-            <input type="submit" value="검색" />
+            <input type="submit" value="검색" className='main-search-button'/>
         </form>
     );
 }
