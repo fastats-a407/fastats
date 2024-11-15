@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
@@ -46,6 +47,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
@@ -350,6 +352,12 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					return b;
 				})
 			)
+			.withSort(Sort.by(
+				Sort.Order.desc("_score"),  // 정확도 순으로 정렬
+				Sort.Order.asc("tableId.keyword") // 동일한 정확도에서 tabledId.keyword 순 정렬 (검색 결과 동일성 위함)
+			))
+			// 10000개 이상의 TotalHits를 불러올 수 있게 함
+			.withTrackTotalHits(true)
 			.withPageable(pageable)
 			.build();
 
@@ -364,21 +372,59 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		Pageable pageable = PageRequest.of(page, size);
 
-		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
+		// searchAfter 기반 코드
+		// TODO: Redis 캐싱을 이용한 searchAfterValues 처리
+		List<StatTableListResponse> documents = new ArrayList<>(size);
+		List<Object> searchAfterValues = null;
+		long totalHits = 0;
+		for (int i = 0; i <= page; i++) {
+			// multiMatchQuery를 사용하여 여러 필드에서 키워드 검색 수행
+			query.setPageable(PageRequest.of(0, size));
+			if (searchAfterValues != null) {
+				log.info("{}", searchAfterValues);
+				query.setSearchAfter(searchAfterValues);
+			}
 
-		// 총 페이지를 넘는 경우, 요청 시 커스텀 에러 던짐
-		long totalHits = searchHits.getTotalHits();
-		int totalPages = (int)Math.ceil((double)totalHits / size);
-		if (page > 0 && page >= totalPages) {
-			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+			SearchHits<StatDataDocument> searchHits;
+			try {
+				searchHits = elasticsearchOperations.search(query, StatDataDocument.class,
+					IndexCoordinates.of("stat_data_index"));
+				log.info("{}", searchHits);
+			} catch (ElasticsearchException e) {
+				log.error("Elasticsearch query failed on page {}: {}", i, e.getDetailedMessage());
+				throw e;
+			}
+
+			// 첫 번째 요청에서만 전체 히트 수 확인 및 페이지 검증
+			if (i == 0) {
+				totalHits = searchHits.getTotalHits();
+				log.info("{}", totalHits);
+				int totalPages = (int)Math.ceil((double)totalHits / size);
+				if (page > 0 && page >= totalPages) {
+					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+				}
+			}
+
+			// 목표 페이지에 도달한 경우에만 데이터 수집
+			if (i == page) {
+				documents = searchHits.getSearchHits().stream()
+					.map(org.springframework.data.elasticsearch.core.SearchHit::getContent)
+					.map(StatTableListResponse::from)
+					.collect(Collectors.toList());
+			}
+
+			// Search After 값을 갱신하여 다음 페이지 준비
+			if (!searchHits.getSearchHits().isEmpty()) {
+				searchAfterValues = searchHits.getSearchHits()
+					.get(searchHits.getSearchHits().size() - 1)
+					.getSortValues();
+			} else {
+				break; // 더 이상의 데이터가 없으면 종료
+			}
 		}
 
-		// 페이지가 적절한 경우 처리
-		List<StatTableListResponse> documents = searchHits.getSearchHits().stream()
-			.map(hit -> docToResponse(hit.getContent()))
-			.collect(Collectors.toList());
-
-		return new PageImpl<>(documents, pageable, searchHits.getTotalHits());
+		// return null;
+		return new PageImpl<>(documents, pageable, totalHits);
 	}
 
 	/*
@@ -414,7 +460,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		SearchHits<StatDataDocument> searchHits = elasticsearchOperations.search(query, StatDataDocument.class);
 		Map<String, List<TableByDto>> tableByMap = new HashMap<>();
-		
+
 		if (searchHits.hasAggregations()) {
 
 			// 인터페이스 AggregationsContainer 대신 구현체인 ElasticsearchAggregation 이용해 집계 결과 획득
