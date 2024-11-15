@@ -62,8 +62,10 @@ export default function Search() {
     };
     return (
         <>
+        <div className="search-results-container">
             <SearchBox value={query} onFocus={onFocusIn} onBlur={onFocusOut} onChange={(e) => setQuery(e.target.value)} onSubmit={handleSearchSubmit} />
             <SearchResults onClick={onAddResultClick} onMouseLeave={onMouseLeave} onMouseOver={onMouseOver} hidden={isHidden} statistics={statistics} searching={searching} />
+        </div>
         </>
     );
 }
