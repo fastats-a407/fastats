@@ -1,11 +1,7 @@
 'use client'
-import Image from "next/image";
 import styles from "./page.module.css";
-import '@picocss/pico'
 import React, { useEffect, useState } from 'react';
 import Search from './components/search/Search'
-import axios from "axios";
-
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
