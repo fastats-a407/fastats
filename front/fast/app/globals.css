@@ -45,6 +45,138 @@ a {
   }
 }
 
+.main-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 가로 중앙 정렬 */
+  text-align: center;
+  min-width: 100%;
+  margin-top: 0; /* 최상단 위치 */
+}
+
+.main-image {
+  width: 400px; /* 원하는 너비로 설정 */
+  height: auto; /* 비율에 맞춰 높이를 자동 조정 */
+  max-width: 100%; /* 부모 요소 너비를 초과하지 않도록 설정 */
+  justify-content: center;
+}
+/* 메인 서치 */
+/* 전체 검색 폼 스타일 */
+.main-search {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  padding: 5px 10px;
+  width: 100%;
+  /* max-width: 800px; */
+  min-width: 60%;
+  box-sizing: border-box;
+  background-color: #fff;
+}
+
+/* 검색 입력 필드 스타일 */
+.main-search input[type="search"] {
+  flex: 1; /* 남은 공간을 모두 차지하도록 설정 */
+  border: none;
+  outline: none;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 20px;
+  color: #333;
+}
+
+/* 검색 버튼 스타일 */
+.main-search-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 8px 15px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: 5px;
+  transition: background-color 0.3s;
+}
+
+/* 검색 버튼 호버 효과 */
+.main-search-button:hover {
+  background-color: #0056b3;
+}
+
+/* 이미지 아이콘 크기 조정 */
+.main-search input[type="search"]::-webkit-search-decoration,
+.main-search input[type="search"]::-webkit-search-cancel-button {
+  display: none; /* 기본 검색 아이콘 숨기기 */
+}
+
+/* 폼의 기본 마진 제거 */
+form[role='search'] {
+  margin: 0;
+}
+
+/* 검색 결과 전체 컨테이너 */
+.search-results-container {
+  position: relative;
+  min-width: 40%;
+}
+
+/* 전체 검색 결과 컨테이너 스타일 */
+.search-results {
+  position: absolute;
+  top: 100%; /* 검색 박스 바로 아래에 위치 */
+  left: 0;
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  max-width: 100%;
+  margin-top: 5px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000; /* 다른 요소들 위에 표시 */
+  overflow-y: auto;
+  max-height: 200px; /* 검색 결과의 최대 높이 설정 */
+}
+
+/* 로딩 메시지 스타일 */
+.loading-message {
+  font-size: 16px;
+  color: #555;
+  text-align: center;
+  padding: 20px;
+}
+
+/* 결과 리스트 스타일 */
+.result-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 개별 결과 항목 스타일 */
+.result-item {
+  padding: 8px 12px;
+  margin: 4px 0;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* 결과 항목 호버 효과 */
+.result-item:hover {
+  background-color: #e0e0e0;
+}
+
+/* 클릭된 항목 스타일(선택적으로 추가 가능) */
+.result-item:active {
+  background-color: #cccccc;
+}
+
+
+
+/* 챗봇 레이아웃 */
 .chatbot-window {
   width: 300px;
   height: 400px;
