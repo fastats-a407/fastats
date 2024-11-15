@@ -18,18 +18,6 @@ export default function Home() {
       return document.cookie.split(";").some((cookie) => cookie.trim().startsWith("sessionID="));
     };
 
-    // sessionID 쿠키가 없을 경우에만 서버에 요청
-    // if (!hasSessionCookie()) {
-    //   axios.get('${apiUrl}/initialize', {
-    //     withCredentials: true, // 쿠키 자동 포함 설정
-    //   })
-    //     .then((response) => {
-    //       console.log("sessionID 쿠키가 생성되었습니다:", response.data);
-    //     })
-    //     .catch((error) => {
-    //       console.error("Failed to initialize session:", error);
-    //     });
-    // }
     if (!hasSessionCookie()) {
       fetch(`${apiUrl}/initialize`, {
         method: 'GET',
