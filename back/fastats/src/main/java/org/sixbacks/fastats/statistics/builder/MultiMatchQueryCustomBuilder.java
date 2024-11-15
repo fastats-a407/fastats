@@ -93,6 +93,28 @@ public class MultiMatchQueryCustomBuilder {
 		return queryBuilder.build();
 	}
 
+	public Query build(NativeQueryBuilder queryBuilder) {
+		queryBuilder
+			.withQuery(q -> q
+				.multiMatch(multiMatchFunction));
+
+		if (pageable != null) {
+			queryBuilder.withPageable(pageable);
+		}
+
+		// Aggregation을 위한 필드 추가
+		if (!aggregationFields.isEmpty()) {
+			NativeQueryBuilder finalQueryBuilder = queryBuilder;
+			aggregationFields.forEach(aggr -> finalQueryBuilder.withAggregation(aggr,
+				new Aggregation.Builder()
+					.terms(t -> t.field(aggr + ".keyword"))
+					.build()
+			));
+		}
+
+		return queryBuilder.build();
+	}
+
 	private List<String> generateFieldListFrom(Map<String, Float> fieldsWithBoostsMap) {
 		return fieldsWithBoostsMap.entrySet().stream()
 			.map(entry -> entry.getKey() + "^" + entry.getValue())
