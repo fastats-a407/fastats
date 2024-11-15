@@ -36,8 +36,9 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
-        <img src="fastats.png" alt="" />
+      <main className={`${styles.main} main-main`}>
+        <img src="fastats.png" alt="" className="main-image"/>
+        <span> 얽힌 통계 검색을 빠르게</span>
         <Search />
       </main>
       <footer className={styles.footer}>
