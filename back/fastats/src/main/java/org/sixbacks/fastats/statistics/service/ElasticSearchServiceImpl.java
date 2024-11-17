@@ -367,64 +367,85 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
 
+		final int SIZE_PARAM = 10000 / searchCriteria.getSize();
+
 		int page = searchCriteria.getPage();
 		int size = searchCriteria.getSize();
+		int searchNextSize = searchCriteria.getSize() * SIZE_PARAM;
+		int fromIndex = page * size;
+		int searchNextPage = fromIndex / searchNextSize;
 
-		Pageable pageable = PageRequest.of(page, size);
+		SearchHits<StatDataDocument> searchHits = getStatTableListResponseBySearchNext(searchNextPage, searchNextSize,
+			query);
+		assert searchHits != null;
 
+		Pageable pageable = PageRequest.of(page, size); // 최종 반환용 Pageable
+
+		// 가져온 데이터 중에서 요청된 페이지 범위만 추출
+		int localFromIndex = fromIndex % (size * SIZE_PARAM); // SearchAfter 결과 내에서 시작 인덱스
+		int localToIndex = Math.min(localFromIndex + size, searchHits.getSearchHits().size()); // 범위 계산
+
+		// List.subList()는 fromIndex 와 toIndex가 같을 경우 빈 리스트를 반환하므로 포함
+		if (localFromIndex >= localToIndex) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+		// 범위 제한 후 매핑
+		List<StatTableListResponse> pagedResponses = searchHits.getSearchHits()
+			.subList(localFromIndex, localToIndex)
+			.stream()
+			.map(org.springframework.data.elasticsearch.core.SearchHit::getContent)
+			.map(StatTableListResponse::from)
+			.toList();
+
+		return new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
+	}
+
+	private SearchHits<StatDataDocument> getStatTableListResponseBySearchNext(int searchPage, int size, Query query) {
 		// searchAfter 기반 코드
 		// TODO: Redis 캐싱을 이용한 searchAfterValues 처리
-		List<StatTableListResponse> documents = new ArrayList<>(size);
 		List<Object> searchAfterValues = null;
-		long totalHits = 0;
-		for (int i = 0; i <= page; i++) {
-			// multiMatchQuery를 사용하여 여러 필드에서 키워드 검색 수행
+
+		for (int i = 0; i <= searchPage; i++) {
+			// SearchAfter 설정
 			query.setPageable(PageRequest.of(0, size));
 			if (searchAfterValues != null) {
-				log.info("{}", searchAfterValues);
 				query.setSearchAfter(searchAfterValues);
 			}
 
+			// Elasticsearch 검색 요청 수행
 			SearchHits<StatDataDocument> searchHits;
 			try {
 				searchHits = elasticsearchOperations.search(query, StatDataDocument.class,
 					IndexCoordinates.of("stat_data_index"));
-				log.info("{}", searchHits);
 			} catch (ElasticsearchException e) {
-				log.error("Elasticsearch query failed on page {}: {}", i, e.getDetailedMessage());
-				throw e;
+				throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 			}
 
-			// 첫 번째 요청에서만 전체 히트 수 확인 및 페이지 검증
 			if (i == 0) {
-				totalHits = searchHits.getTotalHits();
+				long totalHits = searchHits.getTotalHits();
 				log.info("{}", totalHits);
 				int totalPages = (int)Math.ceil((double)totalHits / size);
-				if (page > 0 && page >= totalPages) {
+				if (searchPage > 0 && searchPage >= totalPages) {
 					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 				}
 			}
 
-			// 목표 페이지에 도달한 경우에만 데이터 수집
-			if (i == page) {
-				documents = searchHits.getSearchHits().stream()
-					.map(org.springframework.data.elasticsearch.core.SearchHit::getContent)
-					.map(StatTableListResponse::from)
-					.collect(Collectors.toList());
+			// 목표 페이지의 SearchHits 반환
+			if (i == searchPage) {
+				return searchHits;
 			}
 
-			// Search After 값을 갱신하여 다음 페이지 준비
+			// 다음 SearchAfter 값을 준비
 			if (!searchHits.getSearchHits().isEmpty()) {
 				searchAfterValues = searchHits.getSearchHits()
 					.get(searchHits.getSearchHits().size() - 1)
 					.getSortValues();
 			} else {
-				break; // 더 이상의 데이터가 없으면 종료
+				break; // 데이터가 더 이상 없으면 종료
 			}
 		}
 
-		// return null;
-		return new PageImpl<>(documents, pageable, totalHits);
+		return null; // 요청 범위에 해당하는 데이터가 없는 경우
 	}
 
 	/*
