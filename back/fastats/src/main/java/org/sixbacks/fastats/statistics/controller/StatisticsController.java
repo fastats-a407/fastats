@@ -51,15 +51,20 @@ public class StatisticsController {
 	 */
 	@GetMapping("")
 	public ResponseEntity<ApiResponse<StatTablePageResponse>> getStatTableList(@RequestParam String keyword,
-		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam String ctg,
-		@RequestParam String ctgContent) {
+		@RequestParam int page, @RequestParam(defaultValue = "10") int size, @RequestParam(required = false) String ctg,
+		@RequestParam(required = false) String ctgContent, @RequestParam(defaultValue = "rel") String orderType) {
 
 		// size가 비어 있으면 위 RequestParam에서 10으로 설정되나, 유저가 옳지 않은 값 입력 시 size 제한
 		if (size != 10 && size != 20 && size != 30) {
 			size = 10;
 		}
 
-		SearchCriteria searchCriteria = new SearchCriteria(keyword, page, size, ctg, ctgContent);
+		// 유저가 옳지 않은 정렬 기준을 입력하면 디폴트인 정확도순으로 정렬
+		if (!orderType.equals("rel") && !orderType.equals("time")) {
+			orderType = "rel";
+		}
+
+		SearchCriteria searchCriteria = new SearchCriteria(keyword, page, size, ctg, ctgContent, orderType);
 
 		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(searchCriteria);
 		StatTablePageResponse statTablePage = new StatTablePageResponse(pages.getContent(), pages.getSize(),
