@@ -30,7 +30,7 @@ export interface SearchParams {
     size: number;
     ctg: string;
     ctgContent: string;
-
+    orderType : string;
 }
 
 // 5. 통합 검색 결과
