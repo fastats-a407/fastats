@@ -17,4 +17,6 @@ public @interface WithSearchCriteria {
 	String ctg() default "sectorName";
 
 	String ctgContent() default "인구";
+
+	String orderType() default "rel";
 }

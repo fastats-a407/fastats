@@ -24,6 +24,7 @@ public class SearchCriteriaArgumentResolver implements ParameterResolver {
 			.size(annotation.size())
 			.ctg(annotation.ctg())
 			.ctgContent(annotation.ctgContent())
+			.orderType(annotation.orderType())
 			.build();
 
 		return criteria;
