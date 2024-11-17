@@ -51,10 +51,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.FetchSourceFilter;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 
@@ -319,47 +321,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria) {
 
-		String keyword = searchCriteria.getKeyword();
-		int page = searchCriteria.getPage();
-		int size = searchCriteria.getSize();
-		String ctg = searchCriteria.getCtg();
-		String ctgContent = searchCriteria.getCtgContent();
-
-		Pageable pageable = PageRequest.of(page, size);
-
-		Query query = NativeQuery.builder()
-			.withQuery(q -> q
-				.bool(b -> {
-					// 요청 파라미터에서 빈 값은 null이 아니라 빈 문자열로 처리됨
-					if (StringUtils.isNotBlank(ctg) && StringUtils.isNotBlank(ctgContent)) {
-						b.filter(m -> m
-							.term(t -> t
-								.field(ctg + ".keyword")
-								.value(ctgContent) // 정확히 일치해야 하는 필드
-							)
-						);
-					}
-					// 항상 적용되는 multiMatch 조건 추가
-					b.must(m -> m
-						.multiMatch(multi -> multi
-							.query(keyword)
-							.fields("statSurveyName", "statTableName",
-								"statTableContent", "statTableComment")
-							.type(TextQueryType.BestFields)
-							.analyzer("fastats_nori")
-						)
-					);
-					return b;
-				})
-			)
-			.withSort(Sort.by(
-				Sort.Order.desc("_score"),  // 정확도 순으로 정렬
-				Sort.Order.asc("tableId.keyword") // 동일한 정확도에서 tabledId.keyword 순 정렬 (검색 결과 동일성 위함)
-			))
-			// 10000개 이상의 TotalHits를 불러올 수 있게 함
-			.withTrackTotalHits(true)
-			.withPageable(pageable)
-			.build();
+		Query query = makeSearchQuery(searchCriteria, true);
 
 		return searchByKeyword(searchCriteria, query);
 	}
@@ -367,7 +329,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
 
-		final int SIZE_PARAM = 10000 / searchCriteria.getSize();
+		final int SIZE_PARAM = 600 / searchCriteria.getSize();
 
 		int page = searchCriteria.getPage();
 		int size = searchCriteria.getSize();
@@ -375,9 +337,12 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		int fromIndex = page * size;
 		int searchNextPage = fromIndex / searchNextSize;
 
-		SearchHits<StatDataDocument> searchHits = getStatTableListResponseBySearchNext(searchNextPage, searchNextSize,
+		List<Object> lastSearchAfterValues = findLastSearchAfterValues(searchNextPage, searchNextSize,
 			query);
-		assert searchHits != null;
+
+		Query fetchingQuery = makeSearchQuery(searchCriteria, false);
+		SearchHits<StatDataDocument> searchHits = getResponseWithLastSearchNext(lastSearchAfterValues, searchNextSize,
+			fetchingQuery);
 
 		Pageable pageable = PageRequest.of(page, size); // 최종 반환용 Pageable
 
@@ -397,15 +362,19 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.map(StatTableListResponse::from)
 			.toList();
 
+		// List<StatTableListResponse> pagedResponses = new ArrayList<>();
+		// for (int i = localFromIndex; i <= localToIndex; i++) {
+		// 	StatDataDocument document = searchHits.getSearchHit(i).getContent();
+		// 	pagedResponses.add(docToResponse(document));
+		// }
+
 		return new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
 	}
 
-	private SearchHits<StatDataDocument> getStatTableListResponseBySearchNext(int searchPage, int size, Query query) {
-		// searchAfter 기반 코드
-		// TODO: Redis 캐싱을 이용한 searchAfterValues 처리
+	private List<Object> findLastSearchAfterValues(int searchPage, int size, Query query) {
 		List<Object> searchAfterValues = null;
 
-		for (int i = 0; i <= searchPage; i++) {
+		for (int i = 0; i < searchPage; i++) {
 			// SearchAfter 설정
 			query.setPageable(PageRequest.of(0, size));
 			if (searchAfterValues != null) {
@@ -417,6 +386,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			try {
 				searchHits = elasticsearchOperations.search(query, StatDataDocument.class,
 					IndexCoordinates.of("stat_data_index"));
+				log.info("{}", searchHits);
 			} catch (ElasticsearchException e) {
 				throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 			}
@@ -430,11 +400,6 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 				}
 			}
 
-			// 목표 페이지의 SearchHits 반환
-			if (i == searchPage) {
-				return searchHits;
-			}
-
 			// 다음 SearchAfter 값을 준비
 			if (!searchHits.getSearchHits().isEmpty()) {
 				searchAfterValues = searchHits.getSearchHits()
@@ -445,7 +410,72 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			}
 		}
 
-		return null; // 요청 범위에 해당하는 데이터가 없는 경우
+		return searchAfterValues;
+	}
+
+	private SearchHits<StatDataDocument> getResponseWithLastSearchNext(List<Object> lastSearchAfterValues,
+		int searchSize, Query query) {
+
+		query.setPageable(PageRequest.of(0, searchSize));
+		query.setSearchAfter(lastSearchAfterValues);
+		SearchHits<StatDataDocument> targetSearchHits = elasticsearchOperations.search(query, StatDataDocument.class,
+			IndexCoordinates.of("stat_data_index"));
+
+		return targetSearchHits;
+	}
+
+	private Query makeSearchQuery(SearchCriteria searchCriteria, boolean isSourceFiltered) {
+
+		String keyword = searchCriteria.getKeyword();
+		int page = searchCriteria.getPage();
+		int size = searchCriteria.getSize();
+		String ctg = searchCriteria.getCtg();
+		String ctgContent = searchCriteria.getCtgContent();
+
+		Pageable pageable = PageRequest.of(page, size);
+
+		/*
+			Query에서 NativeQueryBuilder로 수정을 통한 유연성 증가
+		 */
+		NativeQueryBuilder queryBuilder = NativeQuery.builder()
+			.withQuery(q -> q
+				.bool(b -> {
+					// 요청 파라미터에서 빈 값은 null이 아니라 빈 문자열로 처리됨
+					if (StringUtils.isNotBlank(ctg) && StringUtils.isNotBlank(ctgContent)) {
+						b.filter(m -> m
+							.term(t -> t
+								.field(ctg + ".keyword")
+								.value(ctgContent) // 정확히 일치해야 하는 필드
+							)
+						);
+					}
+					// 항상 적용되는 multiMatch 조건 추가
+					b.must(m -> m
+						.multiMatch(multi -> multi
+							.query(keyword)
+							.fields("statSurveyName", "statTableName",
+								"statTableContent", "statTableComment")
+							.type(TextQueryType.CrossFields)
+							.analyzer("fastats_nori")
+						)
+					);
+					return b;
+				})
+			)
+			.withSort(Sort.by(
+				Sort.Order.desc("_score"),  // 정확도 순으로 정렬
+				Sort.Order.asc("tableId.keyword") // 동일한 정확도에서 tabledId.keyword 순 정렬 (검색 결과 동일성 위함)
+			))
+			// 10000개 이상의 TotalHits를 불러올 수 있게 함
+			.withTrackTotalHits(true)
+			.withRequestCache(true)
+			.withPageable(pageable);
+
+		if (isSourceFiltered) {
+			queryBuilder.withSourceFilter(new FetchSourceFilter(null, new String[] {"_source"}));
+		}
+
+		return queryBuilder.build();
 	}
 
 	/*
