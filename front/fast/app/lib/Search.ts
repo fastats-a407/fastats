@@ -1,4 +1,4 @@
-import { ApiResponse, SearchCategoryResponse, SearchParams, SearchResponse, SuggestionKeyword, SurveyData } from "@/app/lib/type";
+import { ApiResponse, SearchCategoryResponse, SearchParams, SearchResponse, SuggestionKeyword } from "@/app/lib/type";
 
 
 
@@ -25,7 +25,8 @@ export async function fetchStats(params: SearchParams): Promise<SearchResponse> 
         page: params.page.toString(),
         size: params.size.toString(),
         ctg: params.ctg,
-        ctgContent: params.ctgContent
+        ctgContent: params.ctgContent,
+        orderType: params.orderType,
     }).toString();
 
     const response = await fetch(url, {
