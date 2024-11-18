@@ -5,12 +5,13 @@ import javax.net.ssl.SSLContext;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
+import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
+import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
+import org.apache.http.impl.nio.reactor.IOReactorConfig;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -33,38 +34,53 @@ public class ElasticSearchConfig {
 
 	@Bean
 	public RestHighLevelClient restHighLevelClient() throws Exception {
-		// SSLContext 설정
+		// SSLContext 설정: 모든 인증서 신뢰
 		SSLContext sslContext = SSLContextBuilder.create()
-			.loadTrustMaterial((chain, authType) -> true)  // 모든 인증서 신뢰
+			.loadTrustMaterial((chain, authType) -> true)
 			.build();
 
-		// RequestConfig 설정 (연결 타임아웃과 소켓 타임아웃 설정)
+		IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
+			.setIoThreadCount(16)
+			.setConnectTimeout(15000)
+			.setSoTimeout(15000)
+			.build();
+
+		// ConnectingIOReactor 생성
+		DefaultConnectingIOReactor ioReactor = new DefaultConnectingIOReactor(ioReactorConfig);
+
+		// RequestConfig 설정
 		RequestConfig requestConfig = RequestConfig.custom()
 			.setConnectTimeout(15000)  // 연결 타임아웃 설정 (15초)
 			.setSocketTimeout(15000)   // 소켓 타임아웃 설정 (15초)
 			.build();
 
-		// HttpClient 설정 (기본 인증 추가)
-		CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+		// CredentialsProvider 설정: 기본 인증
+		BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
 		credentialsProvider.setCredentials(
 			AuthScope.ANY,
 			new UsernamePasswordCredentials(elasticsearchUser, elasticsearchPass)
 		);
 
-		CloseableHttpClient httpClient = HttpClients.custom()
-			.setSSLContext(sslContext)
-			.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE) // CN 검증 비활성화
-			.setDefaultRequestConfig(requestConfig) // 타임아웃 설정 추가
-			.setDefaultCredentialsProvider(credentialsProvider) // 기본 인증 추가
-			.build();
+		// 커넥션 매니저 설정: 커넥션 풀 크기
+		PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(ioReactor);
+		connectionManager.setMaxTotal(1000);           // 전체 최대 커넥션 수
+		connectionManager.setDefaultMaxPerRoute(333);  // 호스트 당 최대 커넥션 수
 
 		// RestClientBuilder 설정
 		RestClientBuilder builder = RestClient.builder(new HttpHost("elasticsearch-node1", 9200, "https"))
-			.setHttpClientConfigCallback(httpAsyncClientBuilder -> httpAsyncClientBuilder
+			.setHttpClientConfigCallback((HttpAsyncClientBuilder httpClientBuilder) -> httpClientBuilder
 				.setSSLContext(sslContext)
 				.setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
-				.setDefaultRequestConfig(requestConfig) // RestClient에 타임아웃 설정 적용
-				.setDefaultCredentialsProvider(credentialsProvider) // 기본 인증 추가
+				.setDefaultRequestConfig(requestConfig)
+				.setDefaultCredentialsProvider(credentialsProvider)
+				.setConnectionManager(connectionManager)
+				.setMaxConnTotal(1000)          // 전체 커넥션 수
+				.setMaxConnPerRoute(333)       // 호스트 당 커넥션 수
+			)
+			.setRequestConfigCallback(requestConfigBuilder ->
+				requestConfigBuilder
+					.setConnectTimeout(15000) // 연결 타임아웃 (15초)
+					.setSocketTimeout(15000)  // 소켓 타임아웃 (15초)
 			);
 
 		return new RestHighLevelClient(builder);
