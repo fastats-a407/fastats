@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
+import org.sixbacks.fastats.statistics.dto.response.SearchByKeywordDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.elasticsearch.core.query.Query;
@@ -25,15 +26,15 @@ public interface ElasticSearchService {
 	@Deprecated
 	Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size);
 
-	/**
+	/**A
 	 * @deprecated {@link #searchByKeyword(SearchCriteria, Query)} 를 이용.
 	 */
 	@Deprecated
 	Page<StatTableListResponse> searchByKeyword(String keyword, int page, int size, Query query);
 
-	Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria);
+	SearchByKeywordDto searchByKeyword(SearchCriteria searchCriteria);
 
-	Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query);
+	SearchByKeywordDto searchByKeyword(SearchCriteria searchCriteria, Query query);
 
 	CategoryListResponse getCategoriesByKeyword(String keyword);
 
