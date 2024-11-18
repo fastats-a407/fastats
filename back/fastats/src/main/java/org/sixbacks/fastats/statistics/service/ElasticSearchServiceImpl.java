@@ -474,11 +474,11 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 				})
 			)
 			.withSort(Sort.by(
-				// orderType에 따라 정렬 조건을 설정
 				"time".equalsIgnoreCase(orderType)
-					? Sort.Order.desc("collInfoEndDate") // 최신순
-					: Sort.Order.desc("_score"),                 // 정확도 순
-				Sort.Order.asc("tableId.keyword") // 동일 정렬 우선순위
+					? Sort.Order.desc("collInfoEndDate")  // 최신순 정렬
+					: Sort.Order.desc("_score"),          // 정확도 순 정렬
+				Sort.Order.asc("statSurveyName.keyword"), // 다음 정렬 기준 statSurveyName 오름차순 정렬
+				Sort.Order.asc("tableId.keyword") // 모든 경우에 tableId 기준 오름차순 정렬
 			))
 			// 10000개 이상의 TotalHits를 불러올 수 있게 함
 			.withTrackTotalHits(true)
