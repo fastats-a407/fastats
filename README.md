@@ -36,15 +36,6 @@
 - **Infra**: Docker, Docker Compose, Docker Hub, Jenkins, NginX
 - **AI** : Spring AI, Ollama
 
-## 📄 사용 기술 스택
-
-- **FE**: Next.js (w/ Typescript)
-- **BE**: Spring Boot (w/ Java 17), Spring Scheduler, Spring Batch, Spring Data JDBC/Elasticsearch/JPA(비교용), Elasticsearch, Logstash, Kibana, MySQL, MongoDB, Redis
-    - **Elasticsearch**: 방대한 통계 데이터를 빠르고 효율적으로 검색하기 위해 Elasticsearch를 사용하였습니다. 이 기술을 사용함으로써 Full-Text Search를 구현하고, 사용자가 원하는 데이터를 신속하게 검색할 수 있는 기능을 제공합니다.
-- **Infra**: Docker, Docker Compose, Docker Hub, Jenkins, NginX
-- **AI**: Spring AI, Ollama
-
-
 ## 🔍 기술 선택 배경
 
 ### Elasticsearch 채택 이유
@@ -111,18 +102,18 @@ Elasticsearch는 **대량의 텍스트 데이터에 대한 빠른 검색 및 분
 
 | 팀원    | 주요 담당 업무 |
 |---------|---------------|
-| **권용수**  | - 사용자 인터페이스(UI) 설계 및 개발<br> - API 연동 및 통신 로직 개발<br> - 챗봇 기능 연동 |
-| **김민지**  | - 데이터 전처리 및 API 구축<br> - Spring Batch를 활용한 데이터 최신화 로직 개발<br> - 검색 기능 구현 (Elasticsearch 활용) |
-| **손영준**  | - Spring Boot 기반 비즈니스 로직 개발<br> - CI/CD 파이프라인 구축 (Jenkins 사용)<br> - 서버 환경 관리 및 배포 (Docker 활용) |
-| **송창용**  | - 인프라 설계 및 네트워크 설정<br> - Docker 및 Docker Compose를 사용한 서비스 환경 구축<br> - Nginx를 사용한 서버 설정 및 리버스 프록시 |
-| **이주영**  | - Logstash와 MongoDB, Elasticsearch 간의 데이터 파이프라인 구축<br> - 데이터베이스 모델링 및 관리<br> - 인프라 관련 지원 |
+| **권용수**  | -  |
+| **김민지**  | -  |
+| **손영준**  | - |
+| **송창용**  | -  |
+| **이주영**  | -  |
 | **허동민**  | - 성능 개선 로직 설계 및 구현<br> - Nori 분석기를 활용한 검색 기능 최적화<br> - 사용자 경험 개선을 위한 데이터 처리 로직 개발 |
 
 ## 🗒️ 느낀 점
 
 | 팀원    | 느낀 점 |
 |---------|---------|
-| **권용수**  | -  |
+| **권용수**  | -  짧은 개발 기간 때문에 아쉬움이 남는 프로젝트였습니다. 특히 빠르게 끝내줬어야할 데이터 전처리헤 생각보다 시간을 잡아먹혀서 다른 팀원들에게 조금 미안합니다. 그래도 다들 재촉하지 않고 자신이 맡은 부분을 빠르게 완성해 주어서 좋았습니다.|
 | **김민지**  | -  |
 | **손영준**  | -  |
 | **송창용**  | -  |
