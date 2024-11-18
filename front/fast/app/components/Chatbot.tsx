@@ -204,6 +204,9 @@ export default function Chatbot() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   sendMessage();
+                  setTimeout(()=>{
+                    setInput("");
+                  },10);
                 }
               }
               }
