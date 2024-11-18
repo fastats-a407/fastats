@@ -18,12 +18,16 @@ export default function Header({ keyword }: HeaderProps) {
         }
     };
 
+    const handleToMain = (e: React.MouseEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        router.push("/");
 
+    }
 
     return (
         <header className="search-header">
             <div className="logo-container">
-                <img src="/fastats.png" alt="Logo" className="logo-icon" />
+                <img src="/fastats.png" alt="Logo" className="logo-icon" onClick={handleToMain} />
             </div>
             <div className="search-container">
                 <img src="/search.png" alt="Search Icon" className="search-icon" />

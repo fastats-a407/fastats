@@ -51,15 +51,18 @@ export default function KeywordPage() {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
+  let initial = false;
   const search = (params: SearchParams) => {
     fetchStats(params)
       .then((result: SearchResponse) => {
         setTotalPages(result.totalPages)
         setPageSize(result.size)
         setStatistics(result.content)
-        let Tresult = Intl.NumberFormat('ko-KR').format(result.totalCounts)
-        setTotalResult(Tresult);
-        console.log(result.content)
+        if (initial) {
+          let Tresult = Intl.NumberFormat('ko-KR').format(result.totalCounts)
+          setTotalResult(Tresult);
+          initial = false
+        }
       })
       .catch((err) => {
         console.log("검색 실패 ", err)
@@ -68,6 +71,7 @@ export default function KeywordPage() {
 
 
   useEffect(() => {
+    initial = true
     const newSearchKeyword: SearchParams = {
       page: curPage,
       keyword: decodedKeyword,
@@ -90,6 +94,8 @@ export default function KeywordPage() {
         setCategoriesBySurvey(result.bySurvey);
         setCategoriesByTheme(result.byTheme);
       })
+
+
   }, [params.keyword])
 
   useEffect(() => {
