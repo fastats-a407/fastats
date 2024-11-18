@@ -222,7 +222,7 @@ export default function Chatbot() {
         </div>
       ) : (
         <button onClick={toggleChatbot} className="chatbot-toggle-button">
-          <img src="chatbot.svg" alt="null" />
+          <img src="/chatbot.svg" alt="null" />
         </button>
       )}
     </div>
