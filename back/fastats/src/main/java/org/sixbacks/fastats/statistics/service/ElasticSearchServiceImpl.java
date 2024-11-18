@@ -30,7 +30,6 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.xcontent.XContentType;
 import org.sixbacks.fastats.global.error.ErrorCode;
 import org.sixbacks.fastats.global.exception.CustomException;
-import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
 import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
 import org.sixbacks.fastats.statistics.dto.response.SearchByKeywordDto;
@@ -63,6 +62,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
@@ -493,20 +493,52 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public CategoryListResponse getCategoriesByKeyword(String keyword) {
 
-		Query query = new MultiMatchQueryCustomBuilder()
-			.withKeyword(keyword)
-			.addFieldWithBoost("statSurveyName", 1.2f)
-			.addFieldWithBoost("statOrgName", 1.0f)
-			.addFieldWithBoost("statTableName", 1.6f)
-			.addFieldWithBoost("statTableContent", 1.2f)
-			.addFieldWithBoost("statTableComment", 1.2f)
-			.withAnalyzer("fastats_nori")
-			.addAggregationField("sectorName")
-			.addAggregationField("statSurveyName")
-			.queryType(TextQueryType.CrossFields)
-			.build();
+		// Query query = new MultiMatchQueryCustomBuilder()
+		// 	.withKeyword(keyword)
+		// 	.addFieldWithBoost("statSurveyName", 1.2f)
+		// 	.addFieldWithBoost("statOrgName", 1.0f)
+		// 	.addFieldWithBoost("statTableName", 1.6f)
+		// 	.addFieldWithBoost("statTableContent", 1.2f)
+		// 	.addFieldWithBoost("statTableComment", 1.2f)
+		// 	.withAnalyzer("fastats_nori")
+		// 	.addAggregationField("sectorName")
+		// 	.addAggregationField("statSurveyName")
+		// 	.queryType(TextQueryType.CrossFields)
+		// 	.build();
+
+		NativeQueryBuilder queryBuilder = NativeQuery.builder()
+			.withQuery(q -> q
+				.bool(b -> {
+					// 항상 적용되는 multiMatch 조건 추가
+					b.must(m -> m
+						.multiMatch(multi -> multi
+							.query(keyword)
+							.fields("statSurveyName", "statTableName",
+								"statTableContent", "statTableComment")
+							.type(TextQueryType.CrossFields)
+							.analyzer("fastats_nori")
+						)
+					);
+					return b;
+				})
+			)
+			.withAggregation("sectorName",
+				new Aggregation.Builder()
+					.terms(t -> t.field("sectorName" + ".keyword").size(10000))
+					.build()
+			)
+			.withAggregation("statSurveyName",
+				new Aggregation.Builder()
+					.terms(t -> t.field("statSurveyName" + ".keyword").size(10000))
+					.build()
+			)
+			// 10000개 이상의 TotalHits를 불러올 수 있게 함
+			.withTrackTotalHits(true)
+			.withRequestCache(true)
+			.withSourceFilter(new FetchSourceFilter(null, new String[] {"_source"}));
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
+		Query query = queryBuilder.build();
 
 		return getCategoriesByKeyword(keyword, aggrList, query);
 	}
