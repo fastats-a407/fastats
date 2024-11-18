@@ -364,14 +364,17 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.map(StatTableListResponse::from)
 			.toList();
 
+		long totalHits = searchHits.getTotalHits();
+		searchHits = null;
+
 		// List<StatTableListResponse> pagedResponses = new ArrayList<>();
 		// for (int i = localFromIndex; i <= localToIndex; i++) {
 		// 	StatDataDocument document = searchHits.getSearchHit(i).getContent();
 		// 	pagedResponses.add(docToResponse(document));
 		// }
-		Page<StatTableListResponse> pages = new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
-		return new SearchByKeywordDto(new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits()),
-			searchHits.getTotalHits());
+		// Page<StatTableListResponse> pages = new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
+		return new SearchByKeywordDto(new PageImpl<>(pagedResponses, pageable, totalHits),
+			totalHits);
 	}
 
 	private List<Object> findLastSearchAfterValues(int searchPage, int size, Query query) {
@@ -413,6 +416,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			} else {
 				break; // 데이터가 더 이상 없으면 종료
 			}
+
+			searchHits = null;
 		}
 
 		return searchAfterValues;
