@@ -369,7 +369,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		// 	pagedResponses.add(docToResponse(document));
 		// }
 		Page<StatTableListResponse> pages = new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
-		return new SearchByKeywordDto(new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits()),searchHits.getTotalHits());
+		return new SearchByKeywordDto(new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits()),
+			searchHits.getTotalHits());
 	}
 
 	private List<Object> findLastSearchAfterValues(int searchPage, int size, Query query) {
@@ -389,6 +390,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					IndexCoordinates.of("stat_data_index"));
 				log.info("{}", searchHits);
 			} catch (ElasticsearchException e) {
+				log.error("엘라스틱 서치 검색 실패 쿼리: {}", query.getFields());
 				throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 			}
 
@@ -397,6 +399,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 				log.info("{}", totalHits);
 				int totalPages = (int)Math.ceil((double)totalHits / size);
 				if (searchPage > 0 && searchPage >= totalPages) {
+					log.error("잘못된 페이지 수 요청 searchPage: {} totalPages: {}", searchPage, totalPages);
 					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 				}
 			}
@@ -566,6 +569,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 					bySurvey = tableByDtoList;
 				}
 				default -> {
+					log.error("key 이름이 잘못되었습니다: {}", key);
 					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 				}
 			}
