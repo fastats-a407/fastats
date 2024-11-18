@@ -501,7 +501,7 @@ select {
   /* 넘치는 텍스트를 숨김 */
   text-overflow: ellipsis;
   /* 넘친 부분에 '...' 표시 */
-  max-width: 100%;
+  max-width: 50%;
   /* 부모 요소 너비에 맞게 조정 */
 }
 
