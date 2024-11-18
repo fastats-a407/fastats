@@ -52,7 +52,6 @@ public class ElasticSearchConfig {
 		RequestConfig requestConfig = RequestConfig.custom()
 			.setConnectTimeout(15000)  // 연결 타임아웃 설정 (15초)
 			.setSocketTimeout(15000)   // 소켓 타임아웃 설정 (15초)
-			.setConnectionRequestTimeout(10000) // 연결 요청 대기시간 추가 (5초)
 			.build();
 
 		// CredentialsProvider 설정: 기본 인증
@@ -64,8 +63,8 @@ public class ElasticSearchConfig {
 
 		// 커넥션 매니저 설정: 커넥션 풀 크기
 		PoolingNHttpClientConnectionManager connectionManager = new PoolingNHttpClientConnectionManager(ioReactor);
-		connectionManager.setMaxTotal(600);           // 전체 최대 커넥션 수
-		connectionManager.setDefaultMaxPerRoute(200);  // 호스트 당 최대 커넥션 수
+		connectionManager.setMaxTotal(1000);           // 전체 최대 커넥션 수
+		connectionManager.setDefaultMaxPerRoute(333);  // 호스트 당 최대 커넥션 수
 
 		// RestClientBuilder 설정
 		RestClientBuilder builder = RestClient.builder(new HttpHost("elasticsearch-node1", 9200, "https"))
@@ -75,8 +74,8 @@ public class ElasticSearchConfig {
 				.setDefaultRequestConfig(requestConfig)
 				.setDefaultCredentialsProvider(credentialsProvider)
 				.setConnectionManager(connectionManager)
-				.setMaxConnTotal(600)          // 전체 커넥션 수
-				.setMaxConnPerRoute(200)       // 호스트 당 커넥션 수
+				.setMaxConnTotal(1000)          // 전체 커넥션 수
+				.setMaxConnPerRoute(333)       // 호스트 당 커넥션 수
 			)
 			.setRequestConfigCallback(requestConfigBuilder ->
 				requestConfigBuilder
