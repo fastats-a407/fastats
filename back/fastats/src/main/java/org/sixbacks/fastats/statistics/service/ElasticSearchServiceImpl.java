@@ -431,6 +431,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		int size = searchCriteria.getSize();
 		String ctg = searchCriteria.getCtg();
 		String ctgContent = searchCriteria.getCtgContent();
+		String orderType = searchCriteria.getOrderType();
 
 		Pageable pageable = PageRequest.of(page, size);
 
@@ -463,8 +464,11 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 				})
 			)
 			.withSort(Sort.by(
-				Sort.Order.desc("_score"),  // 정확도 순으로 정렬
-				Sort.Order.asc("tableId.keyword") // 동일한 정확도에서 tabledId.keyword 순 정렬 (검색 결과 동일성 위함)
+				// orderType에 따라 정렬 조건을 설정
+				"time".equalsIgnoreCase(orderType)
+					? Sort.Order.desc("collInfoEndDate") // 최신순
+					: Sort.Order.desc("_score"),                 // 정확도 순
+				Sort.Order.asc("tableId.keyword") // 동일 정렬 우선순위
 			))
 			// 10000개 이상의 TotalHits를 불러올 수 있게 함
 			.withTrackTotalHits(true)
@@ -494,7 +498,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.withAnalyzer("fastats_nori")
 			.addAggregationField("sectorName")
 			.addAggregationField("statSurveyName")
-			.queryType(TextQueryType.MostFields)
+			.queryType(TextQueryType.CrossFields)
 			.build();
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
