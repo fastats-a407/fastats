@@ -23,10 +23,10 @@ export default function Header({ keyword }: HeaderProps) {
     return (
         <header className="search-header">
             <div className="logo-container">
-                <img src="/path/to/logo.png" alt="Logo" className="logo-icon" />
+                <img src="/fastats.png" alt="Logo" className="logo-icon" />
             </div>
             <div className="search-container">
-                <img src="/path/to/search-icon.png" alt="Search Icon" className="search-icon" />
+                <img src="/search.png" alt="Search Icon" className="search-icon" />
                 <form onSubmit={handleSubmit} className="search-form">
                     <input
                         type="text"

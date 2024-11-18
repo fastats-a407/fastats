@@ -51,10 +51,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregation;
 import org.springframework.data.elasticsearch.client.elc.ElasticsearchAggregations;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
+import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.IndexOperations;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.FetchSourceFilter;
 import org.springframework.data.elasticsearch.core.query.Query;
 import org.springframework.stereotype.Service;
 
@@ -319,6 +321,111 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria) {
 
+		Query query = makeSearchQuery(searchCriteria, true);
+
+		return searchByKeyword(searchCriteria, query);
+	}
+
+	@Override
+	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
+
+		final int SIZE_PARAM = 6000 / searchCriteria.getSize();
+
+		int page = searchCriteria.getPage();
+		int size = searchCriteria.getSize();
+		int searchNextSize = searchCriteria.getSize() * SIZE_PARAM;
+		int fromIndex = page * size;
+		int searchNextPage = fromIndex / searchNextSize;
+
+		List<Object> lastSearchAfterValues = findLastSearchAfterValues(searchNextPage, searchNextSize,
+			query);
+
+		Query fetchingQuery = makeSearchQuery(searchCriteria, false);
+		SearchHits<StatDataDocument> searchHits = getResponseWithLastSearchNext(lastSearchAfterValues, searchNextSize,
+			fetchingQuery);
+
+		Pageable pageable = PageRequest.of(page, size); // 최종 반환용 Pageable
+
+		// 가져온 데이터 중에서 요청된 페이지 범위만 추출
+		int localFromIndex = fromIndex % (size * SIZE_PARAM); // SearchAfter 결과 내에서 시작 인덱스
+		int localToIndex = Math.min(localFromIndex + size, searchHits.getSearchHits().size()); // 범위 계산
+
+		// List.subList()는 fromIndex 와 toIndex가 같을 경우 빈 리스트를 반환하므로 포함
+		if (localFromIndex >= localToIndex) {
+			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+		}
+		// 범위 제한 후 매핑
+		List<StatTableListResponse> pagedResponses = searchHits.getSearchHits()
+			.subList(localFromIndex, localToIndex)
+			.stream()
+			.map(org.springframework.data.elasticsearch.core.SearchHit::getContent)
+			.map(StatTableListResponse::from)
+			.toList();
+
+		// List<StatTableListResponse> pagedResponses = new ArrayList<>();
+		// for (int i = localFromIndex; i <= localToIndex; i++) {
+		// 	StatDataDocument document = searchHits.getSearchHit(i).getContent();
+		// 	pagedResponses.add(docToResponse(document));
+		// }
+
+		return new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
+	}
+
+	private List<Object> findLastSearchAfterValues(int searchPage, int size, Query query) {
+		List<Object> searchAfterValues = null;
+
+		for (int i = 0; i < searchPage; i++) {
+			// SearchAfter 설정
+			query.setPageable(PageRequest.of(0, size));
+			if (searchAfterValues != null) {
+				query.setSearchAfter(searchAfterValues);
+			}
+
+			// Elasticsearch 검색 요청 수행
+			SearchHits<StatDataDocument> searchHits;
+			try {
+				searchHits = elasticsearchOperations.search(query, StatDataDocument.class,
+					IndexCoordinates.of("stat_data_index"));
+				log.info("{}", searchHits);
+			} catch (ElasticsearchException e) {
+				throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+			}
+
+			if (i == 0) {
+				long totalHits = searchHits.getTotalHits();
+				log.info("{}", totalHits);
+				int totalPages = (int)Math.ceil((double)totalHits / size);
+				if (searchPage > 0 && searchPage >= totalPages) {
+					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
+				}
+			}
+
+			// 다음 SearchAfter 값을 준비
+			if (!searchHits.getSearchHits().isEmpty()) {
+				searchAfterValues = searchHits.getSearchHits()
+					.get(searchHits.getSearchHits().size() - 1)
+					.getSortValues();
+			} else {
+				break; // 데이터가 더 이상 없으면 종료
+			}
+		}
+
+		return searchAfterValues;
+	}
+
+	private SearchHits<StatDataDocument> getResponseWithLastSearchNext(List<Object> lastSearchAfterValues,
+		int searchSize, Query query) {
+
+		query.setPageable(PageRequest.of(0, searchSize));
+		query.setSearchAfter(lastSearchAfterValues);
+		SearchHits<StatDataDocument> targetSearchHits = elasticsearchOperations.search(query, StatDataDocument.class,
+			IndexCoordinates.of("stat_data_index"));
+
+		return targetSearchHits;
+	}
+
+	private Query makeSearchQuery(SearchCriteria searchCriteria, boolean isSourceFiltered) {
+
 		String keyword = searchCriteria.getKeyword();
 		int page = searchCriteria.getPage();
 		int size = searchCriteria.getSize();
@@ -328,7 +435,10 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		Pageable pageable = PageRequest.of(page, size);
 
-		Query query = NativeQuery.builder()
+		/*
+			Query에서 NativeQueryBuilder로 수정을 통한 유연성 증가
+		 */
+		NativeQueryBuilder queryBuilder = NativeQuery.builder()
 			.withQuery(q -> q
 				.bool(b -> {
 					// 요청 파라미터에서 빈 값은 null이 아니라 빈 문자열로 처리됨
@@ -346,7 +456,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 							.query(keyword)
 							.fields("statSurveyName", "statTableName",
 								"statTableContent", "statTableComment")
-							.type(TextQueryType.BestFields)
+							.type(TextQueryType.CrossFields)
 							.analyzer("fastats_nori")
 						)
 					);
@@ -362,74 +472,14 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			))
 			// 10000개 이상의 TotalHits를 불러올 수 있게 함
 			.withTrackTotalHits(true)
-			.withPageable(pageable)
-			.build();
+			.withRequestCache(true)
+			.withPageable(pageable);
 
-		return searchByKeyword(searchCriteria, query);
-	}
-
-
-	@Override
-	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
-
-		int page = searchCriteria.getPage();
-		int size = searchCriteria.getSize();
-
-		Pageable pageable = PageRequest.of(page, size);
-
-		// searchAfter 기반 코드
-		// TODO: Redis 캐싱을 이용한 searchAfterValues 처리
-		List<StatTableListResponse> documents = new ArrayList<>(size);
-		List<Object> searchAfterValues = null;
-		long totalHits = 0;
-		for (int i = 0; i <= page; i++) {
-			// multiMatchQuery를 사용하여 여러 필드에서 키워드 검색 수행
-			query.setPageable(PageRequest.of(0, size));
-			if (searchAfterValues != null) {
-				log.info("{}", searchAfterValues);
-				query.setSearchAfter(searchAfterValues);
-			}
-
-			SearchHits<StatDataDocument> searchHits;
-			try {
-				searchHits = elasticsearchOperations.search(query, StatDataDocument.class,
-					IndexCoordinates.of("stat_data_index"));
-				log.info("{}", searchHits);
-			} catch (ElasticsearchException e) {
-				log.error("Elasticsearch query failed on page {}: {}", i, e.getDetailedMessage());
-				throw e;
-			}
-
-			// 첫 번째 요청에서만 전체 히트 수 확인 및 페이지 검증
-			if (i == 0) {
-				totalHits = searchHits.getTotalHits();
-				log.info("{}", totalHits);
-				int totalPages = (int)Math.ceil((double)totalHits / size);
-				if (page > 0 && page >= totalPages) {
-					throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
-				}
-			}
-
-			// 목표 페이지에 도달한 경우에만 데이터 수집
-			if (i == page) {
-				documents = searchHits.getSearchHits().stream()
-					.map(org.springframework.data.elasticsearch.core.SearchHit::getContent)
-					.map(StatTableListResponse::from)
-					.collect(Collectors.toList());
-			}
-
-			// Search After 값을 갱신하여 다음 페이지 준비
-			if (!searchHits.getSearchHits().isEmpty()) {
-				searchAfterValues = searchHits.getSearchHits()
-					.get(searchHits.getSearchHits().size() - 1)
-					.getSortValues();
-			} else {
-				break; // 더 이상의 데이터가 없으면 종료
-			}
+		if (isSourceFiltered) {
+			queryBuilder.withSourceFilter(new FetchSourceFilter(null, new String[] {"_source"}));
 		}
 
-		// return null;
-		return new PageImpl<>(documents, pageable, totalHits);
+		return queryBuilder.build();
 	}
 
 	/*
@@ -448,7 +498,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 			.withAnalyzer("fastats_nori")
 			.addAggregationField("sectorName")
 			.addAggregationField("statSurveyName")
-			.queryType(TextQueryType.MostFields)
+			.queryType(TextQueryType.CrossFields)
 			.build();
 
 		List<String> aggrList = List.of("sectorName, statSurveyName");
