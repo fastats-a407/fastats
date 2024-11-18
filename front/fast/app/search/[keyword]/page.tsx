@@ -5,7 +5,7 @@ import Header from "@/app/components/Header";
 import RelatedKeywords from "@/app/components/RelatedKeywords";
 import { use, useEffect, useState } from "react";
 import { fetchCategories, fetchRelatedKeywords, fetchStats } from "@/app/lib/Search";
-import { SearchCategory, SearchParams, SurveyData } from "@/app/lib/type";
+import { SearchCategory, SearchParams, SearchResponse, SurveyData } from "@/app/lib/type";
 
 export default function KeywordPage() {
   const params = useParams();
@@ -53,10 +53,12 @@ export default function KeywordPage() {
 
   const search = (params: SearchParams) => {
     fetchStats(params)
-      .then((result) => {
+      .then((result: SearchResponse) => {
         setTotalPages(result.totalPages)
         setPageSize(result.size)
         setStatistics(result.content)
+        let Tresult = Intl.NumberFormat('ko-KR').format(result.totalCounts)
+        setTotalResult(Tresult);
         console.log(result.content)
       })
       .catch((err) => {
@@ -106,10 +108,6 @@ export default function KeywordPage() {
     setTotalByTheme(num)
   }, [categoriesByTheme])
 
-  useEffect(() => {
-    let result = Intl.NumberFormat('ko-KR').format(totalBySurvey > totalByTheme ? totalBySurvey : totalByTheme)
-    setTotalResult(result);
-  }, [totalBySurvey, totalByTheme])
 
   // 페이지 이동
 
@@ -118,7 +116,7 @@ export default function KeywordPage() {
   const handleChangeOrder = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newOrder = event.target.value;
     const newSearchKeyword: SearchParams = {
-      page:0,
+      page: 0,
       keyword: decodedKeyword,
       size: pageSize,
       ctg: ctgType,
