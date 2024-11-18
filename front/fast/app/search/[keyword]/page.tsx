@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import RelatedKeywords from "@/app/components/RelatedKeywords";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { fetchCategories, fetchRelatedKeywords, fetchStats } from "@/app/lib/Search";
 import { SearchCategory, SearchParams, SurveyData } from "@/app/lib/type";
 
@@ -27,10 +27,12 @@ export default function KeywordPage() {
   const [totalByTheme, setTotalByTheme] = useState(0);
   const [totalBySurvey, setTotalBySurvey] = useState(0);
   const [totalResult, setTotalResult] = useState("");
+  const [orderType, setOrderType] = useState("rel")
 
-  const pagenationSize = 10;
-  const currentRangeStart = Math.floor(curPage / pagenationSize) * pagenationSize;
-  const currentRangeEnd = Math.min(currentRangeStart + pagenationSize, totalPages);
+
+  const paginationSize = 10;
+  const currentRangeStart = Math.floor(curPage / paginationSize) * paginationSize;
+  const currentRangeEnd = Math.min(currentRangeStart + paginationSize, totalPages);
 
   const toggleExpand = (section: string) => {
     setCtgName("");
@@ -41,6 +43,7 @@ export default function KeywordPage() {
       size: pageSize,
       ctg: "",
       ctgContent: "",
+      orderType: orderType,
     };
     search(newSearchKeyword);
     setCurPage(0);
@@ -69,6 +72,7 @@ export default function KeywordPage() {
       size: pageSize,
       ctg: "",
       ctgContent: "",
+      orderType: orderType,
     }
 
     search(newSearchKeyword);
@@ -111,6 +115,22 @@ export default function KeywordPage() {
 
   // 정렬 순서 변경
 
+  const handleChangeOrder = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newOrder = event.target.value;
+    const newSearchKeyword: SearchParams = {
+      page:0,
+      keyword: decodedKeyword,
+      size: pageSize,
+      ctg: ctgType,
+      ctgContent: ctgName,
+      orderType: newOrder,
+    }
+    search(newSearchKeyword);
+    setCurPage(0);
+    setOrderType(newOrder);
+  }
+
+
   // 페이지 크기 변경
   const handleChangePageSize = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newPageSize = parseInt(event.target.value, 10);
@@ -120,6 +140,7 @@ export default function KeywordPage() {
       size: newPageSize,
       ctg: ctgType,
       ctgContent: ctgName,
+      orderType: orderType,
     }
 
     search(newSearchKeyword)
@@ -136,6 +157,7 @@ export default function KeywordPage() {
       size: pageSize,
       ctg: type,
       ctgContent: name,
+      orderType: orderType,
     };
     search(newSearchKeyword);
 
@@ -152,12 +174,14 @@ export default function KeywordPage() {
         size: pageSize,
         ctg: ctgType,
         ctgContent: ctgName,
+        orderType: orderType,
       };
 
       search(newSearchKeyword);
       setCurPage(newPage);
     }
   };
+
 
   return (
     <>
@@ -171,9 +195,9 @@ export default function KeywordPage() {
           </div>
           <div className="select-opt">
             <div>
-              <select name="정렬순서" defaultValue={1}>
-                <option value="1">정확도순</option>
-                <option value="2">최신순</option>
+              <select name="정렬순서" defaultValue={orderType} onChange={handleChangeOrder}>
+                <option value="rel">정확도순</option>
+                <option value="time">최신순</option>
               </select>
             </div>
             <div>
@@ -258,7 +282,7 @@ export default function KeywordPage() {
           </button>
 
           <button
-            onClick={() => handlePageChange(currentRangeStart - pagenationSize)}
+            onClick={() => handlePageChange(currentRangeStart - paginationSize)}
             disabled={currentRangeStart === 0}
           >
             {"<"}
@@ -278,7 +302,7 @@ export default function KeywordPage() {
           })}
 
           <button
-            onClick={() => handlePageChange(currentRangeStart + pagenationSize)}
+            onClick={() => handlePageChange(currentRangeStart + paginationSize)}
             disabled={currentRangeEnd >= totalPages}
           >
             {">"}
