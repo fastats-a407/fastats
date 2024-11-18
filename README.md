@@ -36,15 +36,6 @@
 - **Infra**: Docker, Docker Compose, Docker Hub, Jenkins, NginX
 - **AI** : Spring AI, Ollama
 
-## 📄 사용 기술 스택
-
-- **FE**: Next.js (w/ Typescript)
-- **BE**: Spring Boot (w/ Java 17), Spring Scheduler, Spring Batch, Spring Data JDBC/Elasticsearch/JPA(비교용), Elasticsearch, Logstash, Kibana, MySQL, MongoDB, Redis
-    - **Elasticsearch**: 방대한 통계 데이터를 빠르고 효율적으로 검색하기 위해 Elasticsearch를 사용하였습니다. 이 기술을 사용함으로써 Full-Text Search를 구현하고, 사용자가 원하는 데이터를 신속하게 검색할 수 있는 기능을 제공합니다.
-- **Infra**: Docker, Docker Compose, Docker Hub, Jenkins, NginX
-- **AI**: Spring AI, Ollama
-
-
 ## 🔍 기술 선택 배경
 
 ### Elasticsearch 채택 이유
