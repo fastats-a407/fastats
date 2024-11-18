@@ -329,7 +329,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	@Override
 	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
 
-		final int SIZE_PARAM = 600 / searchCriteria.getSize();
+		final int SIZE_PARAM = 6000 / searchCriteria.getSize();
 
 		int page = searchCriteria.getPage();
 		int size = searchCriteria.getSize();
