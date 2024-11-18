@@ -30,6 +30,8 @@ export default function KeywordPage() {
   const [orderType, setOrderType] = useState("rel")
 
 
+  const [selectedIndex, setSelectedIndex] = useState("")
+
   const paginationSize = 10;
   const currentRangeStart = Math.floor(curPage / paginationSize) * paginationSize;
   const currentRangeEnd = Math.min(currentRangeStart + paginationSize, totalPages);
@@ -152,9 +154,13 @@ export default function KeywordPage() {
     setCurPage(0); // 초기 페이지로 이동
   };
 
-
+  useEffect(() => {
+    console.log(selectedIndex)
+  }, [selectedIndex])
   // 주제, 혹은 설문 선택
   const handleClickFilter = (type: string, name: string) => {
+    setSelectedIndex(name);
+
     const newSearchKeyword: SearchParams = {
       page: 0,
       keyword: decodedKeyword,
@@ -223,7 +229,9 @@ export default function KeywordPage() {
             <div className={`accordion-content ${expandedSection === "주제별" ? "expanded" : ""}`}>
               <ul className="category-list">
                 {categoriesByTheme.map((item, index) => (
-                  <li key={index} className="category-item" onClick={() => { handleClickFilter("sectorName", item.name) }}>
+                  <li key={index}
+                    className={`category-item ${selectedIndex === item.name ? "selected" : ""}`}
+                    onClick={() => { handleClickFilter("sectorName", item.name) }}>
                     {item.name}({item.count})
                   </li>
                 ))}
@@ -237,7 +245,9 @@ export default function KeywordPage() {
             <div className={`accordion-content ${expandedSection === "통계별" ? "expanded" : ""}`}>
               <ul className="category-list">
                 {categoriesBySurvey.map((item, index) => (
-                  <li key={index} className="category-item" onClick={() => { handleClickFilter("statSurveyName", item.name) }}>
+                  <li key={index}
+                    className={`category-item ${selectedIndex === item.name ? "selected" : ""}`}
+                    onClick={() => { handleClickFilter("statSurveyName", item.name) }}>
                     {item.name}({item.count})
                   </li>
                 ))}
@@ -249,21 +259,23 @@ export default function KeywordPage() {
           {statistics.map((result, index) => (
             <div key={index} className="search-result">
               {result.tableLink ? (
-                <a href={result.tableLink} target="_blank" rel="noopener noreferrer">
-                  <div className="search-title">{result.title}</div>
-                </a>
+                <div className="search-title">
+                  <a href={result.tableLink} target="_blank" rel="noopener noreferrer">
+                    {result.title}
+                  </a>
+                </div>
               ) : (
                 <div className="search-title">{result.title}</div>
               )}
 
               {result.statSurveyInfo.statLink ? (
-                <a href={result.statSurveyInfo.statLink} target="_blank" rel="noopener noreferrer">
-                  <div className="search-source">
+                <div className="search-source">
+                  <a href={result.statSurveyInfo.statLink} target="_blank" rel="noopener noreferrer">
                     {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}
                     {result.collStartDate ? `, ${result.collStartDate.substring(0, 4)}` : ""}
                     {result.collEndDate ? `~${result.collEndDate.substring(0, 4)}` : ""}
-                  </div>
-                </a>
+                  </a>
+                </div>
               ) : (
                 <div className="search-source">
                   {result.statSurveyInfo.orgName}, {result.statSurveyInfo.statTitle}

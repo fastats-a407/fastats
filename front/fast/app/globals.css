@@ -414,9 +414,12 @@ select {
   transition: background-color 0.3s;
 }
 
-.category-item:hover {
+
+.category-item:hover,
+.category-item.selected {
   background-color: #bde0fe;
 }
+
 
 /* 스크롤바 스타일 */
 .accordion-content.expanded::-webkit-scrollbar {
