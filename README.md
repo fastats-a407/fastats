@@ -75,23 +75,23 @@ Elasticsearch는 **대량의 텍스트 데이터에 대한 빠른 검색 및 분
 
 ## 1. 랜딩 페이지
 - **설명**: 전처리된 약 25만개의 통계청 데이터를 검색할 수 있는 화면을 제공합니다. 기존 KOSIS 통계청의 검색 속도보다 훨씬 빠른 속도를 경험할 수 있습니다.
-- ![랜딩 페이지](docs/img/practice01.gif)  
+- <img src="docs/img/practice01.gif" alt="랜딩 페이지" width="800">
 
 ## 2. 검색어 제안
 - **설명**: 해당 검색어의 오타를 검출하거나 해당 검색어와 유사한 검색어를 추천합니다.
-- ![검색어 제안](docs/img/practice02.gif)  
+- <img src="docs/img/practice02.gif" alt="검색어 제안" width="800">
 
 ## 3. 카테고리 분류
 - **설명**: 카테고리에 알맞게 데이터를 정렬합니다.
-- ![카테고리 분류](docs/img/practice03.gif)  
+- <img src="docs/img/practice03.gif" alt="카테고리 분류" width="800">
 
 ## 4. 대분류 분류
 - **설명**: 통계표의 주제 혹은 통계 기관에 따라 분류합니다.
-- ![대분류 분류](docs/img/practice04.gif)  
+- <img src="docs/img/practice04.gif" alt="대분류 분류" width="800">
 
 ## 5. 챗봇 기능
 - **설명**: 사용자의 입력에 따라 챗봇이 추천 검색어를 제시합니다.
-- ![챗봇 기능](docs/img/practice05.gif)  
+- <img src="docs/img/practice05.gif" alt="챗봇 기능" width="800">
 
 ## 📈 향후 업데이트 계획
 
