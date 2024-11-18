@@ -14,5 +14,5 @@ public class StatTablePageResponse {
 	private List<StatTableListResponse> content;
 	private int size;
 	private int totalPages;
-
+	private long totalCounts;
 }

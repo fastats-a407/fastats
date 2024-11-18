@@ -15,5 +15,4 @@ public class SearchCriteria {
 	private String ctg;
 	private String ctgContent;
 	private String orderType;
-
 }

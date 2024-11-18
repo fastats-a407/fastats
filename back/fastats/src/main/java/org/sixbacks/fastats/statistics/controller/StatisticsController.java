@@ -5,6 +5,7 @@ import java.util.List;
 import org.sixbacks.fastats.global.response.ApiResponse;
 import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
+import org.sixbacks.fastats.statistics.dto.response.SearchByKeywordDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.dto.response.StatTablePageResponse;
 import org.sixbacks.fastats.statistics.service.CollInfoService;
@@ -66,9 +67,10 @@ public class StatisticsController {
 
 		SearchCriteria searchCriteria = new SearchCriteria(keyword, page, size, ctg, ctgContent, orderType);
 
-		Page<StatTableListResponse> pages = elasticSearchService.searchByKeyword(searchCriteria);
+		SearchByKeywordDto responses = elasticSearchService.searchByKeyword(searchCriteria);
+		Page<StatTableListResponse> pages = responses.getPages();
 		StatTablePageResponse statTablePage = new StatTablePageResponse(pages.getContent(), pages.getSize(),
-			pages.getTotalPages());
+			pages.getTotalPages(),responses.getTotalCounts());
 
 		ApiResponse<StatTablePageResponse> response = ApiResponse.success("검색이 성공했습니다.", statTablePage);
 
