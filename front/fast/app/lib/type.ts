@@ -30,7 +30,7 @@ export interface SearchParams {
     size: number;
     ctg: string;
     ctgContent: string;
-    orderType : string;
+    orderType: string;
 }
 
 // 5. 통합 검색 결과
@@ -38,6 +38,7 @@ export interface SearchResponse {
     content: SurveyData[];
     size: number;
     totalPages: number;
+    totalCounts: number;
 }
 
 // 6. 카테고리 검색 결과
