@@ -73,6 +73,7 @@ a {
   min-width: 60%;
   box-sizing: border-box;
   background-color: #fff;
+  position: relative;
 }
 
 /* 검색 입력 필드 스타일 */
@@ -574,8 +575,8 @@ select{
 
 .keywords-container {
   display: flex;
-  flex-wrap: wrap;  /* 넘칠 경우 줄바꿈 */
-  gap: 8px;         /* 키워드 간 간격 */
+  flex-wrap: wrap;  
+  gap: 8px;
   margin-top: 5px;
 }
 
