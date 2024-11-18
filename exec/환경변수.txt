@@ -1,0 +1,58 @@
+===== 환경 변수 ======
+
+=====  .env    ======
+
+이 환경변수 파일이 docker-compose.yml 파일과 같은 폴더에 존재해야 한다.
+
+# Project namespace (defaults to the current folder name if not set)
+#COMPOSE_PROJECT_NAME=myproject
+
+# Password for the 'elastic' user (at least 6 characters)
+ELASTIC_PASSWORD=***********************
+
+# Version of Elastic products
+STACK_VERSION=8.7.1
+
+# Set the cluster name
+CLUSTER_NAME=docker-cluster
+
+# Set to 'basic' or 'trial' to automatically start the 30-day trial
+LICENSE=basic
+#LICENSE=trial
+
+# Port to expose Elasticsearch HTTP API to the host
+ES_PORT_NODE1=9200
+ES_PORT_NODE2=9201
+ES_PORT_NODE3=9202
+
+# Increase or decrease based on the available host memory (in bytes)
+ES_MEM_LIMIT=1073741824
+LS_MEM_LIMIT=1073741824
+
+# Sample Predefined Key only to be used in POC environments
+ENCRYPTION_KEY=rnjsdydtnrlaalswlthsdudwnsthdckddyddlwndudgjehdals
+
+# Redis configuration
+REDIS_PORT=6379
+REDIS_HOST=redis
+REDIS_PASSWORD=**************  # Redis 보안을 위해 설정 추천
+
+# MySQL configuration
+MYSQL_ROOT_PASSWORD=*****************  # 필수 설정
+MYSQL_DATABASE=fastats
+MYSQL_USER=sixbackendcook
+MYSQL_PASSWORD=*******************
+MYSQL_PORT=3306
+
+# Kibana configuration
+# ELASTICSEARCH_HOSTS=[ "http://elasticsearch-node1:9200","http://elasticsearch-node2:9201","http://elasticsearch-node3:9202" ]
+ELASTICSEARCH_SERVICE_TOKEN=    
+
+
+# ollama model configuration
+OLLAMA_MODEL=icodo/llama3-ko
+OLLAMA_BASE_URL=http://ollama:11434
+OLLAMA_VERSION=0.4.0
+
+# front NEXTJS_URL
+NEXT_PUBLIC_API_URL=https//k11a407.p.ssafy.io/api/v1
