@@ -33,6 +33,7 @@ import org.sixbacks.fastats.global.exception.CustomException;
 import org.sixbacks.fastats.statistics.builder.MultiMatchQueryCustomBuilder;
 import org.sixbacks.fastats.statistics.dto.request.SearchCriteria;
 import org.sixbacks.fastats.statistics.dto.response.CategoryListResponse;
+import org.sixbacks.fastats.statistics.dto.response.SearchByKeywordDto;
 import org.sixbacks.fastats.statistics.dto.response.StatSurveyInfoDto;
 import org.sixbacks.fastats.statistics.dto.response.StatTableListResponse;
 import org.sixbacks.fastats.statistics.dto.response.TableByDto;
@@ -319,7 +320,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	}
 
 	@Override
-	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria) {
+	public SearchByKeywordDto searchByKeyword(SearchCriteria searchCriteria) {
 
 		Query query = makeSearchQuery(searchCriteria, true);
 
@@ -327,7 +328,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	}
 
 	@Override
-	public Page<StatTableListResponse> searchByKeyword(SearchCriteria searchCriteria, Query query) {
+	public SearchByKeywordDto searchByKeyword(SearchCriteria searchCriteria, Query query) {
 
 		final int SIZE_PARAM = 6000 / searchCriteria.getSize();
 
@@ -367,8 +368,8 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		// 	StatDataDocument document = searchHits.getSearchHit(i).getContent();
 		// 	pagedResponses.add(docToResponse(document));
 		// }
-
-		return new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
+		Page<StatTableListResponse> pages = new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits());
+		return new SearchByKeywordDto(new PageImpl<>(pagedResponses, pageable, searchHits.getTotalHits()),searchHits.getTotalHits());
 	}
 
 	private List<Object> findLastSearchAfterValues(int searchPage, int size, Query query) {
