@@ -353,6 +353,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 
 		// List.subList()는 fromIndex 와 toIndex가 같을 경우 빈 리스트를 반환하므로 포함
 		if (localFromIndex >= localToIndex) {
+			log.error("localFromIndex: {}, localToIndex: {}", localFromIndex, localToIndex);
 			throw new CustomException(ErrorCode.STAT_ILL_REQUEST);
 		}
 		// 범위 제한 후 매핑
