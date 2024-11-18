@@ -42,7 +42,7 @@ export default function Chatbot() {
         // console.log("SSE connected");
         setMessages((prevMessages) => [
           ...prevMessages,
-          { sender: "bot", text: "연결이 되었습니다." },
+          { sender: "bot", text: "연결이 되었습니다. 찾고 싶은 '단어'를 입력해 주세요" },
         ]);
       };
 
@@ -102,6 +102,7 @@ export default function Chatbot() {
       endStream();
       eventSource?.close(); // 현재 연결을 닫고 eventSource를 null로 설정
       eventSource = null;
+      setMessages([])
     }
     setIsOpen(!isOpen);
   };
@@ -220,7 +221,9 @@ export default function Chatbot() {
           </div>
         </div>
       ) : (
-        <button onClick={toggleChatbot}>Open Chat</button>
+        <button onClick={toggleChatbot} className="chatbot-toggle-button">
+          <img src="chatbot.svg" alt="null" />
+        </button>
       )}
     </div>
   );
