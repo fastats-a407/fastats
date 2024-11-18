@@ -38,6 +38,23 @@ export default function Chatbot() {
     if (isOpen && !eventSource) {
       eventSource = new EventSource(`${axiosInstance.defaults.baseURL}/stream`, { withCredentials: true });
 
+      eventSource.onopen = () => {
+        // console.log("SSE connected");
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "연결이 되었습니다." },
+        ]);
+      };
+
+      eventSource.onerror = () => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: "bot", text: "연결이 되지 않았습니다. 챗봇을 껐다 켜주세요." },
+        ]);
+  
+        eventSource?.close();
+        eventSource = null;
+      };
 
       eventSource.onmessage = (event: MessageEvent) => {
         messageBuffer += event.data;
@@ -184,6 +201,12 @@ export default function Chatbot() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type a message..."
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  sendMessage();
+                }
+              }
+              }
             />
             <button onClick={sendMessage}>Send</button>
           </div>
