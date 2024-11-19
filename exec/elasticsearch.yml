@@ -1,0 +1,31 @@
+cluster.name: "docker-cluster"
+network.host: ["_local_", "_site_"]
+http.max_content_length: 800mb
+xpack.security.enabled: true
+
+# HTTP SSL 설정 (HTTP 통신을 위한 SSL 설정)
+xpack.security.http.ssl.enabled: true
+xpack.security.http.ssl.verification_mode: certificate
+xpack.security.http.ssl.keystore.path: /usr/share/elasticsearch/config/http.p12
+xpack.security.http.ssl.truststore.path: /usr/share/elasticsearch/config/http.p12
+
+# Transport Layer SSL 설정 (노드 간의 통신을 위한 SSL 설정)
+xpack.security.transport.ssl.enabled: true
+xpack.security.transport.ssl.verification_mode: certificate
+xpack.security.transport.ssl.keystore.path: /usr/share/elasticsearch/config/elasticsearch-node1.p12
+xpack.security.transport.ssl.truststore.path: /usr/share/elasticsearch/config/elasticsearch-node1.p12
+
+# Monitoring 및 기타 설정
+xpack.monitoring.collection.enabled: true
+thread_pool.write.queue_size: 4000
+logger._root: DEBUG
+
+# 자동 리프레시 비활성화
+# index.refresh_interval: 10s
+
+# 트랜잭션 내구성 비동기화
+# index.translog.durability: async
+
+logger.level: debug
+logger.action.level: debug
+logger.index.search.slowlog.level: trace

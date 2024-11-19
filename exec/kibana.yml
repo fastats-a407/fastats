@@ -1,0 +1,59 @@
+# This section was automatically generated during setup.
+server.name: kibana
+server.host: 0.0.0.0
+server.publicBaseUrl: "https://k11a407.p.ssafy.io:5601/kibana"
+elasticsearch.hosts: 
+  - "https://elasticsearch-node1:9200"
+  - "https://elasticsearch-node2:9201"
+  - "https://elasticsearch-node3:9202"
+server.basePath: /kibana
+server.rewriteBasePath: true
+xpack.security.encryptionKey: ***********************
+xpack.encryptedSavedObjects.encryptionKey: ***********************
+xpack.reporting.encryptionKey: ***********************
+xpack.reporting.roles.enabled: false
+
+
+# SSL 설정
+server.ssl.enabled: true
+server.ssl.keystore.path: /usr/share/kibana/config/kibana.p12
+server.ssl.keystore.password: *******
+server.ssl.truststore.path: /usr/share/kibana/config/kibana.p12
+server.ssl.truststore.password: *******
+
+# 계정 설정
+elasticsearch.username: kibana_system
+elasticsearch.password: ***********************
+
+# CA 인증서 경로
+elasticsearch.ssl.certificateAuthorities: [ "/usr/share/kibana/config/elastic-stack-ca.p12" ]
+
+# ES cluster 통신용. 인증서 패스워드를 입력한다.
+elasticsearch.ssl.keystore.path: /usr/share/kibana/config/http.p12 
+elasticsearch.ssl.keystore.password: *******
+elasticsearch.ssl.truststore.path: /usr/share/kibana/config/http.p12
+elasticsearch.ssl.truststore.password: *******
+elasticsearch.ssl.verificationMode: certificate
+
+
+# Kibana Stack Monitoring 설정
+# monitoring.ui.enabled: true
+# xpack.monitoring.ui.container.elasticsearch.username: logstash_system
+# xpack.monitoring.ui.container.elasticsearch.password: QK-YK1P-AqpqsfIb61Pa
+# xpack.monitoring.ui.container.elasticsearch.hosts:
+  # - "https://elasticsearch-node1:9200"
+  # - "https://elasticsearch-node2:9201"
+  # - "https://elasticsearch-node3:9202"
+
+#logging:
+#  appenders:
+#    file:
+#     type: file
+#     fileName: /var/log/kibana.log
+#     layout:
+#       type: json
+# root:
+#   appenders:
+#     - default
+#     - file
+
