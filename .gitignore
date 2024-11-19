@@ -13,6 +13,11 @@ local.properties
 .settings/
 .loadpath
 .recommenders
+.gitignore
+.env
+elasticsearch-cert.crt
+back/fastats/src/main/resources/elasticsearch/
+
 
 # External tool builders
 .externalToolBuilders/
@@ -281,4 +286,5 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+infra/.env
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,intellij,react,java,eclipse

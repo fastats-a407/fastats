@@ -1,0 +1,237 @@
+services:
+  elasticsearch-node1:
+    build:
+      dockerfile: Dockerfile.elastic # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}" # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node1
+    environment:
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node1
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ES_PORT_NODE1}:9200"
+    volumes:
+      - es_data_node1:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
+    networks:
+      - fastats-network
+
+  elasticsearch-node2:
+    build:
+      dockerfile: Dockerfile.elastic # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}" # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node2
+    environment:
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node2
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ES_PORT_NODE2}:9200"
+    volumes:
+      - es_data_node2:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
+    networks:
+      - fastats-network
+
+  elasticsearch-node3:
+    build:
+      dockerfile: Dockerfile.elastic # 커스텀 Dockerfile.elastic을 지정
+      args:
+        STACK_VERSION: "${STACK_VERSION}" # .env 파일에서 STACK_VERSION 가져와 Dockerfile로 전달
+    container_name: elasticsearch-node3
+    environment:
+      - discovery.seed_hosts=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.initial_master_nodes=elasticsearch-node1,elasticsearch-node2,elasticsearch-node3
+      - cluster.name=${CLUSTER_NAME}
+      - node.name=elasticsearch-node3
+      - node.roles=master,data
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - xpack.security.enabled=false # 보안을 비활성화 (HTTPS 대신 HTTP 사용)
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "${ES_PORT_NODE3}:9200"
+    volumes:
+      - es_data_node3:/usr/share/elasticsearch/data
+      - ./userdict_ko.txt:/usr/share/elasticsearch/config/userdict_ko.txt
+    networks:
+      - fastats-network
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:${STACK_VERSION}
+    container_name: logstash
+    environment:
+      - LS_JAVA_OPTS=-Xms256m -Xmx256m
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_USER=${MYSQL_USER}
+    ports:
+      - 9600:9600 # Logstash monitoring port
+    volumes:
+      - ./mysql-connector-j-8.0.33.jar:/usr/share/logstash/mysql-connector-j-8.0.33.jar
+    networks:
+      - fastats-network
+    depends_on:
+      - elasticsearch-node1
+      - elasticsearch-node2
+      - elasticsearch-node3
+      - mysql
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    command: >
+      redis-server --requirepass ${REDIS_PASSWORD} --maxmemory 2GB --maxmemory-policy allkeys-lru --appendonly no --save "900 1" --save "300 10" --save "60 10000" --appendfilename appendonly.aof --dir /data
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fastats-network
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql # SQL 파일 마운트
+    networks:
+      - fastats-network
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS}
+      - ELASTICSEARCH_SERVICE_TOKEN=${ELASTICSEARCH_SERVICE_TOKEN}
+    ports:
+      - "5601:5601" # Kibana 웹 인터페이스 포트
+    networks:
+      - fastats-network
+    depends_on:
+      - elasticsearch-node1
+      - elasticsearch-node2
+      - elasticsearch-node3
+    volumes:
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+
+  # fastapi:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile.fastapi
+  #   container_name: fastapi
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - fastats-network
+
+  spring:
+    image: thundercloud3/fastats:test # Docker Hub에 업로드된 이미지를 사용
+    container_name: spring
+    ports:
+      - "8080:8080" # 호스트의 포트 8080을 컨테이너의 포트 8080에 매핑
+    volumes:
+      - ./application-dev.yml:/app/config/application-dev.yml # application-dev.yml 파일을 컨테이너에 마운트      
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:${MYSQL_PORT}/fastats
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - SPRING_REDIS_HOST=${REDIS_HOST}
+      - SPRING_REDIS_PORT=${REDIS_PORT}
+      - SPRING_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - SPRING_ELASTICSEARCH_URIS=http://elasticsearch-node1:${ES_PORT_NODE1},http://elasticsearch-node2:${ES_PORT_NODE2},http://elasticsearch-node3:${ES_PORT_NODE3}
+      - SPRING_ELASTICSEARCH_USERNAME=elastic
+      - SPRING_ELASTICSEARCH_PASSWORD=${ELASTIC_PASSWORD}
+      - SPRING_CONFIG_ADDITIONAL_LOCATION=/app/config/application-dev.yml
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL}
+      - OLLAMA_MODEL=${OLLAMA_MODEL}
+      # - SPRING_CONFIG_ADDITIONAL_LOCATION=classpath:/app/config/application-dev.yml
+    networks:
+      - fastats-network
+    depends_on:
+      - mysql
+      - kibana
+      - elasticsearch-node1
+      - elasticsearch-node2
+      - elasticsearch-node3
+      - logstash
+      - redis
+    restart: always # 컨테이너가 중단될 때 자동 재시작
+
+  react:
+    image: thundercloud3/front:test
+    container_name: react
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    networks:
+      - fastats-network
+
+  ollama:
+    image: ollama/ollama:${OLLAMA_VERSION}
+    ports:
+      - 11434:11434
+    volumes:
+      - ollama:/root/.ollama
+    container_name: ollama
+    tty: true
+    restart: always
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_HOST=0.0.0.0
+    networks:
+      - fastats-network
+
+networks:
+  fastats-network:
+    driver: bridge
+
+volumes:
+  es_data_node1:
+    driver: local
+  es_data_node2:
+    driver: local
+  es_data_node3:
+    driver: local
+  redis_data:
+    driver: local
+  mysql_data:
+    driver: local
+  ollama:
+    driver: local
