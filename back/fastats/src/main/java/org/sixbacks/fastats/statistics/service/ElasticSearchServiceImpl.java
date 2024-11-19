@@ -65,7 +65,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregation;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsAggregate;
 import co.elastic.clients.elasticsearch._types.aggregations.StringTermsBucket;
-import co.elastic.clients.elasticsearch._types.query_dsl.Operator;
 import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import io.micrometer.common.util.StringUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -473,7 +472,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 							.fields("statSurveyName", "statTableName",
 								"statTableContent", "statTableComment")
 							.type(TextQueryType.CrossFields)
-							.operator(Operator.And)
+							// .operator(Operator.And)
 							.analyzer("fastats_nori")
 						)
 					);
@@ -528,7 +527,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 							.fields("statSurveyName", "statTableName",
 								"statTableContent", "statTableComment")
 							.type(TextQueryType.CrossFields)
-							.operator(Operator.And)
+							// .operator(Operator.And)
 							.analyzer("fastats_nori")
 						)
 					);
