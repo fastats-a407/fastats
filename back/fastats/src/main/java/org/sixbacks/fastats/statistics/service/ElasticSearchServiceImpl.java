@@ -336,7 +336,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		int size = searchCriteria.getSize();
 
 		int searchNextSize = searchCriteria.getSize();
-		if (page > 401) {
+		if (page > 50) {
 			searchNextSize = searchCriteria.getSize() * SIZE_PARAM;
 		}
 
@@ -353,7 +353,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 		Pageable pageable = PageRequest.of(page, size); // 최종 반환용 Pageable
 
 		// 가져온 데이터 중에서 요청된 페이지 범위만 추출
-		int localFromIndex = fromIndex % (size * SIZE_PARAM); // SearchAfter 결과 내에서 시작 인덱스
+		int localFromIndex = fromIndex % (searchNextSize); // SearchAfter 결과 내에서 시작 인덱스
 		int localToIndex = Math.min(localFromIndex + size, searchHits.getSearchHits().size()); // 범위 계산
 
 		// List.subList()는 fromIndex 와 toIndex가 같을 경우 빈 리스트를 반환하므로 포함
