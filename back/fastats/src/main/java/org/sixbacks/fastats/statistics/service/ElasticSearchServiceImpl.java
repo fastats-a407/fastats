@@ -472,6 +472,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 							.fields("statSurveyName", "statTableName",
 								"statTableContent", "statTableComment")
 							.type(TextQueryType.CrossFields)
+							// .operator(Operator.And)
 							.analyzer("fastats_nori")
 						)
 					);
@@ -526,6 +527,7 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 							.fields("statSurveyName", "statTableName",
 								"statTableContent", "statTableComment")
 							.type(TextQueryType.CrossFields)
+							// .operator(Operator.And)
 							.analyzer("fastats_nori")
 						)
 					);
