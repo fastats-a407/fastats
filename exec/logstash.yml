@@ -1,0 +1,19 @@
+xpack.monitoring.enabled: true
+xpack.monitoring.elasticsearch.username: logstash_system
+xpack.monitoring.elasticsearch.password: ********************
+xpack.monitoring.elasticsearch.hosts:
+  - "https://elasticsearch-node1:9200"
+  - "https://elasticsearch-node2:9200"
+  - "https://elasticsaerch-node3:9200"
+
+# CA 인증서 경로
+xpack.monitoring.elasticsearch.ssl.certificate_authority: "/usr/share/logstash/config/elasticsearch-ca.pem"
+
+# 인증 모드, node 일 경우 SSL 검증을 사용하지 않는다.
+xpack.monitoring.elasticsearch.ssl.verification_mode: certificate
+
+# keystore, truststore 인증서 경로
+# xpack.monitoring.elasticsearch.ssl.truststore.path: /usr/share/logstash/config/logstash.p12
+# xpack.monitoring.elasticsearch.ssl.truststore.password: ********************
+xpack.monitoring.elasticsearch.ssl.keystore.path: /usr/share/logstash/config/logstash.p12
+xpack.monitoring.elasticsearch.ssl.keystore.password: ********************
