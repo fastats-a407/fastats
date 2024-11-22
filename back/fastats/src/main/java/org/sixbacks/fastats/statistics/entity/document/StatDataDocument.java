@@ -14,8 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
 
-@Document(indexName = "stat_data_index")
-@Setting(settingPath = "/elasticsearch/settings/nori-settings.json")
+@Document(indexName = "my_index")
+@Setting(settingPath = "/elasticsearch/settings/nori-settings.json", shards = 3)
 @AllArgsConstructor
 @Getter
 @ToString
