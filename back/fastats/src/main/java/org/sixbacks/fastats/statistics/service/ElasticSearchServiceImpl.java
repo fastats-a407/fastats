@@ -165,6 +165,11 @@ public class ElasticSearchServiceImpl implements ElasticSearchService {
 	// TODO : BatchSize와 NumThreads에 대한 효율적인 처리 방식을 채택해야함.
 	public void saveDataWithBulkThroughMultiThreads() {
 		List<StatDataDocument> documents = statSurveyJdbcRepository.findAllStatData();
+
+		// 이미 존재하는 인덱스라면 변화를 발생시키지 않음
+		IndexOperations indexOps = elasticsearchOperations.indexOps(StatDataDocument.class);
+		indexOps.createWithMapping();
+
 		int batchSize = 1000;
 		int numThreads = 8; // 병렬로 실행할 스레드 수
 		ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
